@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">learn_how_to_code</string>
+    <string name="title_activity_login">Login</string>
+</resources>
