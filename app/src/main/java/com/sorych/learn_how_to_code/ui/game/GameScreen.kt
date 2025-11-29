@@ -27,7 +27,7 @@ import com.sorych.learn_how_to_code.ui.theme.Learn_how_to_codeTheme
 import java.nio.file.Files.size
 
 @Composable
-fun GameScreen(modifier: Modifier) {
+fun GameScreen() {
     val context = LocalContext.current
     val tilePainter = painterResource(R.drawable.sea_waves2)
     val tileSize =64.dp
@@ -44,7 +44,7 @@ fun GameScreen(modifier: Modifier) {
     }
 
     Box(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF82d4fa)) // base color
     ) {
@@ -80,6 +80,6 @@ fun GameScreen(modifier: Modifier) {
 @Composable
 fun GameScreenPreview() {
     Learn_how_to_codeTheme {
-        GameScreen(modifier = Modifier)
+        GameScreen()
     }
 }

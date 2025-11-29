@@ -219,7 +219,7 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit = {}, onLoginClick: () -> Unit)
             OutlinedTextField(
                 modifier = Modifier.fillMaxWidth(0.8f),
                 value = parentEmail,
-                onValueChange = { password = it },
+                onValueChange = { parentEmail = it },
                 label = {Text("Parent's email", fontSize = 12.sp)},
                 singleLine = true,
                 textStyle = TextStyle(fontSize = 14.sp),
@@ -264,8 +264,14 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit = {}, onLoginClick: () -> Unit)
                                         "firstName" to firstName,
                                         "lastName" to lastName,
                                         "dob" to dob,
+                                        "role" to role,
                                         "email" to email
                                     )
+
+                                    // Only add parentEmail if the role is "child" and it's not empty
+                                    if (role == "child" && parentEmail.isNotEmpty()) {
+                                        user["parentEmail"] = parentEmail
+                                    }
                                     db.collection("users").document(userId)
                                         .set(user)
                                         .addOnCompleteListener { task ->

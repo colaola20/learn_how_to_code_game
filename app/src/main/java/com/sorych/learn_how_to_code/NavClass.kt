@@ -1,5 +1,6 @@
 package com.sorych.learn_how_to_code
 
+import GameScreen
 import LoginScreen
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
@@ -8,8 +9,6 @@ import androidx.navigation.compose.rememberNavController
 import com.sorych.learn_how_to_code.ui.registration.RegisterScreen
 import kotlinx.serialization.Serializable
 
-lateinit var onLoginClick: () -> Unit
-lateinit var onRegisterSuccess: () -> Unit
 
 sealed class Routes {
     @Serializable
@@ -44,7 +43,7 @@ fun NavClass() {
         }
         // You will also need to define your other destinations
         composable<Routes.Game> {
-            // Your Game screen composable goes here
+            GameScreen()
         }
         composable<Routes.Registration> {
             RegisterScreen(
@@ -54,9 +53,7 @@ fun NavClass() {
                     }
                 },
                 onLoginClick = {
-                    navController.navigate(Routes.Login) {
-                        popUpTo(Routes.Registration) {inclusive = true}
-                    }
+                    navController.popBackStack()
                 }
             )
         }
