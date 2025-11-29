@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "975277348316",
+    "project_id": "learn-how-to-code-95098",
+    "storage_bucket": "learn-how-to-code-95098.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:975277348316:android:db0325dd7063cdd653eb19",
+        "android_client_info": {
+          "package_name": "com.sorych.learn_how_to_code"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSILNMKqgpEZFI5YUBMmSmyDdrC4c1TeU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

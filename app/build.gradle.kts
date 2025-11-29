@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+
+    id("org.jetbrains.kotlin.plugin.serialization")
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {
@@ -50,6 +53,19 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.appcompat.resources)
+    implementation(libs.androidx.navigation.compose)
+
+    // Add the Firebase BoM for compatible library versions. [1, 2]
+    val bom = platform("com.google.firebase:firebase-bom:33.1.2")
+    implementation(bom)
+    androidTestImplementation(bom)
+
+    // Declare Firebase dependencies WITHOUT specifying versions.
+    // The BoM will manage these versions for you.
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-database")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
