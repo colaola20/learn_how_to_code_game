@@ -66,6 +66,10 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-database")
 
+    // Add these for App Check (no version needed - managed by BoM)
+    implementation("com.google.firebase:firebase-appcheck-debug")
+    implementation("com.google.firebase:firebase-appcheck")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

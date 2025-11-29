@@ -43,6 +43,10 @@ import com.google.firebase.auth.auth
 import com.google.firebase.database.database
 import com.google.firebase.firestore.firestore
 import com.sorych.learn_how_to_code.R
+import com.sorych.learn_how_to_code.ui.theme.SandyBeige
+import java.time.LocalDate
+import java.time.Period
+import java.time.format.DateTimeFormatter
 
 // ---------- Validation Helpers ----------
 
@@ -56,6 +60,22 @@ fun isValidName(name: String) : Boolean {
     return name.length in 3..30
 }
 
+fun isUnder16(dobString: String): Boolean {
+    return try {
+        // Normalize input: replace slashes with dashes
+        val normalized = dobString.replace("/", "-")
+
+        if (normalized.length != 10) return false // Need full date
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val dob = LocalDate.parse(normalized, formatter)
+        val today = LocalDate.now()
+        val age = Period.between(dob, today).years
+        age < 16
+    } catch (e: Exception) {
+        false // invalid date format
+    }
+}
+
 
 @Composable
 fun RegisterScreen(onRegisterSuccess: () -> Unit = {}, onLoginClick: () -> Unit) {
@@ -66,6 +86,8 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit = {}, onLoginClick: () -> Unit)
     var lastName by remember { mutableStateOf("") }
     var dob by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
+    var role by remember { mutableStateOf("parent") }
+    var parentEmail by remember { mutableStateOf("") }
 
     val auth = Firebase.auth
     val db = Firebase.firestore
@@ -125,52 +147,89 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit = {}, onLoginClick: () -> Unit)
             )
         }
 
+        // Space line
+        Spacer(modifier = Modifier.height(2.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(0.8f)
+        ) {
+            // DOB input field
+            OutlinedTextField(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp),
+                value = dob,
+                onValueChange = {
+                    dob = it
+                    role = if (isUnder16(dob)) "child" else "parent"
+                                },
+                label = {Text("Date of birth", fontSize = 12.sp)},
+                placeholder = {Text("YYYY-MM-DD", fontSize = 12.sp)},
+                singleLine = true,
+                textStyle = TextStyle(fontSize = 14.sp),
+            )
+
+            Text(
+                text = "Role: $role",
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp)
+            )
+
+        }
+
 
         // Space line
         Spacer(modifier = Modifier.height(2.dp))
 
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(0.8f)
+        ) {
+            // Email input field
+            OutlinedTextField(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp),
+                value = email,
+                onValueChange = { email = it },
+                label = {Text("Email", fontSize = 12.sp)},
+                singleLine = true,
+                textStyle = TextStyle(fontSize = 14.sp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            )
+
+            // Password input field
+            OutlinedTextField(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp),
+                value = password,
+                onValueChange = { password = it },
+                label = {Text("Password", fontSize = 12.sp)},
+                singleLine = true,
+                textStyle = TextStyle(fontSize = 14.sp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            )
+        }
+
+        if (role == "child") {
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth(0.8f),
+                value = parentEmail,
+                onValueChange = { password = it },
+                label = {Text("Parent's email", fontSize = 12.sp)},
+                singleLine = true,
+                textStyle = TextStyle(fontSize = 14.sp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            )
+        }
 
 
         // Space line
-        Spacer(modifier = Modifier.height(2.dp))
-
-        // DOB input field
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(0.8f),
-            value = dob,
-            onValueChange = { dob = it },
-            label = {Text("Date of birth (YYYY-MM-DD)", fontSize = 12.sp)},
-            singleLine = true,
-            textStyle = TextStyle(fontSize = 14.sp),
-        )
-        // Space line
-        Spacer(modifier = Modifier.height(2.dp))
-
-        // Email input field
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(0.8f),
-            value = email,
-            onValueChange = { email = it },
-            label = {Text("Email", fontSize = 12.sp)},
-            singleLine = true,
-            textStyle = TextStyle(fontSize = 14.sp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-        )
-        // Space line
-        Spacer(modifier = Modifier.height(2.dp))
-
-        // Password input field
-        OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(0.8f),
-            value = password,
-            onValueChange = { password = it },
-            label = {Text("Password", fontSize = 12.sp)},
-            singleLine = true,
-            textStyle = TextStyle(fontSize = 14.sp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-        )
-        // Space line
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         // Register button
         Button(
             onClick = {
@@ -187,6 +246,9 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit = {}, onLoginClick: () -> Unit)
                     }
                     !isValidName(lastName) -> {
                         errorMessage = "Last name must be 3 to 30 characters"
+                    }
+                    role == "child" && (parentEmail.isEmpty() || !isValidEmail(parentEmail)) -> {
+                        errorMessage = "Please enter valid parent's email"
                     }
                     else -> {
                         errorMessage = ""
@@ -222,18 +284,20 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit = {}, onLoginClick: () -> Unit)
                 }
             },
             modifier = Modifier
-                .height(35.dp)
+                .height(50.dp)
                 .fillMaxWidth(0.8f),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFFFFFF),
+                containerColor = SandyBeige,
                 contentColor = Color(0xFF003F5C)
             )
         ) {
-            Text(text = "Register", fontSize = 14.sp)
+            Text(text = "Register", fontSize = 16.sp)
         }
 
         // Show error message
         if (errorMessage.isNotEmpty()) {
+            // Space line
+            Spacer(modifier = Modifier.height(2.dp))
             Text(text = errorMessage, color = MaterialTheme.colorScheme.error)
         }
 
@@ -242,7 +306,7 @@ fun RegisterScreen(onRegisterSuccess: () -> Unit = {}, onLoginClick: () -> Unit)
 
         // // Back to login
         TextButton(onClick = onLoginClick) {
-            Text(text = "Already have an account? Login", color = Color(0xFFFFFFFF))
+            Text(text = "Already have an account? Login", color = SandyBeige)
         }
     }
 }

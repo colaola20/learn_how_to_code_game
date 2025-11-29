@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.sp
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.sorych.learn_how_to_code.R
+import com.sorych.learn_how_to_code.ui.theme.DeepOceanBlue
+import com.sorych.learn_how_to_code.ui.theme.SandyBeige
 
 @Composable
 fun LoginScreen(onLoginSuccess: () -> Unit, onRegistrationClick: () -> Unit) {
@@ -65,7 +67,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onRegistrationClick: () -> Unit) {
 
         // Email input field
         OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(0.8f),
+            modifier = Modifier.fillMaxWidth(0.6f),
             value = email,
             onValueChange = { email = it },
             label = {Text("Email", fontSize = 12.sp)},
@@ -78,7 +80,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onRegistrationClick: () -> Unit) {
 
         // Password input field
         OutlinedTextField(
-            modifier = Modifier.fillMaxWidth(0.8f),
+            modifier = Modifier.fillMaxWidth(0.6f),
             value = password,
             onValueChange = { password = it },
             label = {Text("Password", fontSize = 12.sp)},
@@ -110,10 +112,10 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onRegistrationClick: () -> Unit) {
             },
             modifier = Modifier
                 .height(50.dp)
-                .fillMaxWidth(0.8f),
+                .fillMaxWidth(0.6f),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFFFFFF),
-                contentColor = Color(0xFF003F5C)
+                containerColor = SandyBeige,
+                contentColor = DeepOceanBlue
             )
         ) {
             Text(text = "Login", fontSize = 16.sp)
@@ -131,7 +133,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit, onRegistrationClick: () -> Unit) {
 
         // Navigate to Register
         TextButton(onClick = onRegistrationClick) {
-            Text(text = "Don't have an account? Register", color = Color(0xFFFFFFFF))
+            Text(text = "Don't have an account? Register", color = SandyBeige)
         }
     }
 }
