@@ -196,83 +196,124 @@ fun GameControls(
             .padding(20.dp)
     ) {
         // Drop zones
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(0.5f)
-                .padding(8.dp)
-        ) {
-            repeat(boxCount) { index ->
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .size(80.dp)
-                        .padding(10.dp)
-                        .border(1.dp, Color.Black)
-                        .dragAndDropTarget(
-                            shouldStartDragAndDrop = { event ->
-                                event
-                                    .mimeTypes()
-                                    .contains(ClipDescription.MIMETYPE_TEXT_PLAIN)
-                            },
-                            target = remember {
-                                object : DragAndDropTarget {
-                                    override fun onDrop(event: DragAndDropEvent): Boolean {
-                                        dragBoxIndex = index
+        Row(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(0.5f)
+                    .padding(8.dp)
+            ) {
+                repeat(boxCount) { index ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .size(80.dp)
+                            .padding(10.dp)
+                            .border(1.dp, Color.Black)
+                            .dragAndDropTarget(
+                                shouldStartDragAndDrop = { event ->
+                                    event
+                                        .mimeTypes()
+                                        .contains(ClipDescription.MIMETYPE_TEXT_PLAIN)
+                                },
+                                target = remember {
+                                    object : DragAndDropTarget {
+                                        override fun onDrop(event: DragAndDropEvent): Boolean {
+                                            dragBoxIndex = index
 
-                                        val direction = when (index) {
-                                            0 -> 1  // up
-                                            1 -> 2  // down
-                                            2 -> 3  // left
-                                            else -> 4  // right
+                                            val direction = when (index) {
+                                                0 -> 1  // up
+                                                1 -> 2  // down
+                                                2 -> 3  // left
+                                                else -> 4  // right
+                                            }
+                                            onDirectionSelected(direction)
+
+                                            return true
                                         }
-                                        onDirectionSelected(direction)
-
-                                        return true
                                     }
                                 }
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    this@Row.AnimatedVisibility(
-                        visible = index == dragBoxIndex,
-                        enter = scaleIn() + fadeIn(),
-                        exit = scaleOut() + fadeOut()
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            painter = painterResource(R.drawable.right),
-                            contentDescription = "Right Arrow",
-                            modifier = Modifier
-                                .fillMaxSize(),
-                            tint = Color.Unspecified
-                        )
+                        this@Row.AnimatedVisibility(
+                            visible = index == dragBoxIndex,
+                            enter = scaleIn() + fadeIn(),
+                            exit = scaleOut() + fadeOut()
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.right),
+                                contentDescription = "Right Arrow",
+                                modifier = Modifier
+                                    .fillMaxSize(),
+                                tint = Color.Unspecified
+                            )
+                        }
                     }
                 }
             }
-        }
 
+            Row (modifier = Modifier
+                .fillMaxWidth(0.5f)
+                .padding(8.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.left),
+                    contentDescription = "Draggable Arrow",
+                    modifier = Modifier
+                        .size(64.dp)
+                        .dragAndDropSource(
+                            transferData = { offset ->
+                                DragAndDropTransferData(
+                                    clipData = ClipData.newPlainText("left", "Left")
+                                )
+                            }
+                        ),
+                    tint = Color.Unspecified
+                )
+                Icon(
+                    painter = painterResource(R.drawable.up),
+                    contentDescription = "Draggable Arrow",
+                    modifier = Modifier
+                        .size(64.dp)
+                        .dragAndDropSource(
+                            transferData = { offset ->
+                                DragAndDropTransferData(
+                                    clipData = ClipData.newPlainText("up", "Up")
+                                )
+                            }
+                        ),
+                    tint = Color.Unspecified
+                )
+                Icon(
+                    painter = painterResource(R.drawable.right),
+                    contentDescription = "Draggable Arrow",
+                    modifier = Modifier
+                        .size(64.dp)
+                        .dragAndDropSource(
+                            transferData = { offset ->
+                                DragAndDropTransferData(
+                                    clipData = ClipData.newPlainText("right", "Right")
+                                )
+                            }
+                        ),
+                    tint = Color.Unspecified
+                )
+                Icon(
+                    painter = painterResource(R.drawable.down),
+                    contentDescription = "Draggable Arrow",
+                    modifier = Modifier
+                        .size(64.dp)
+                        .dragAndDropSource(
+                            transferData = { offset ->
+                                DragAndDropTransferData(
+                                    clipData = ClipData.newPlainText("down", "Down")
+                                )
+                            }
+                        ),
+                    tint = Color.Unspecified
+                )
+            }
 
-        // Draggable arrow icon - THIS is what the user drags
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 20.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.right),
-                contentDescription = "Draggable Arrow",
-                modifier = Modifier
-                    .size(64.dp)
-                    .dragAndDropSource(
-                        transferData = { offset ->
-                            DragAndDropTransferData(
-                                clipData = ClipData.newPlainText("arrow", "Arrow")
-                            )
-                        }
-                    ),
-                tint = Color.Unspecified
-            )
         }
 
 
