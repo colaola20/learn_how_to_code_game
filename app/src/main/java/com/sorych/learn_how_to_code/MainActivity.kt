@@ -26,11 +26,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Learn_how_to_codeTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    NavClass()
-                }
+//                Surface(
+//                    modifier = Modifier.fillMaxSize()
+//                ) {
+//                    NavClass()
+//                }
+                GameScreen()
             }
         }
     }
