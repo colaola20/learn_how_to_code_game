@@ -28,9 +28,21 @@ object LevelConfigs {
                 paths = listOf(
                     PathConfig(
                         startX = 0.1f,
-                        startY = 0.5f,
+                        startY = 0.8f,
+                        endX = 0.5f,
+                        endY = 0.8f
+                    ),
+                    PathConfig(
+                        startX = 0.5f,
+                        startY = 0.8f,
+                        endX = 0.5f,
+                        endY = 0.4f
+                    ),
+                    PathConfig(
+                        startX = 0.5f,
+                        startY = 0.4f,
                         endX = 0.9f,
-                        endY = 0.5f
+                        endY = 0.4f
                     )
                 ),
                 backgroundColor = Color(0xFF82d4fa),

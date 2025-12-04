@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -22,15 +21,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sorych.learn_how_to_code.R
 import com.sorych.learn_how_to_code.ui.game.GameViewModel
@@ -71,13 +67,45 @@ fun GameScreen(
         TiledBackground(tileBitmap = tileBitmap)
 
         // Your real UI content goes here
-        Column(Modifier.fillMaxSize()) {
+        Canvas(Modifier.fillMaxSize()) {
             // Draw all paths for this level
             levelConfig.paths.forEach { pathConfig ->
-                PathDrawer(
-                    icon = icon,
-                    pathConfig = pathConfig
+                val start = Offset(x = size.width * pathConfig.startX, y = size.height * pathConfig.startY)
+                val end = Offset(x = size.width * pathConfig.endX, y = size.height * pathConfig.endY)
+
+                drawLine(
+                    color = pathConfig.pathColor,
+                    start = start,
+                    end = end,
+                    strokeWidth = pathConfig.strokeWidth,
+                    cap = StrokeCap.Round
                 )
+
+                // Draw icons
+                val dx = end.x - start.x
+                val dy = end.y - start.y
+                val iconSizePx = 48.dp.toPx()
+                val distance = kotlin.math.sqrt(dx*dx + dy*dy)
+                val stepX = dx / distance * pathConfig.iconGap
+                val stepY = dy / distance * pathConfig.iconGap
+
+                var x = start.x
+                var y = start.y
+
+                while (kotlin.math.sqrt((x - start.x)*(x - start.x) + (y - start.y)*(y - start.y)) < distance) {
+                    drawIntoCanvas { canvas ->
+                        canvas.save()
+                        canvas.translate(x - iconSizePx/2, y - iconSizePx/2)
+
+                        with(icon) {
+                            draw(size = Size(iconSizePx, iconSizePx))
+                        }
+
+                        canvas.restore()
+                    }
+                    x += stepX
+                    y += stepY
+                }
             }
         }
     }
@@ -103,55 +131,6 @@ fun TiledBackground(tileBitmap: ImageBitmap) {
                     colorFilter = ColorFilter.tint(Color(0xFF2096f3))
                 )
             }
-        }
-    }
-}
-
-
-@Composable
-fun PathDrawer(
-    icon: Painter,
-    pathConfig: PathConfig,
-    iconSize: Dp = 48.dp,
-    ) {
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val start = Offset(x = size.width * pathConfig.startX, y = size.height * pathConfig.startY)
-        val end = Offset(x = size.width * pathConfig.endX, y = size.height * pathConfig.endY)
-        drawLine(
-            color = pathConfig.pathColor,
-            start = start,
-            end = end,
-            strokeWidth = pathConfig.strokeWidth,
-            cap = StrokeCap.Round
-        )
-
-        // Calculate distance and direction
-        val dx = end.x - start.x
-        val dy = end.y - start.y
-        val iconSizePx = iconSize.toPx()
-
-        val distance = kotlin.math.sqrt(dx*dx + dy*dy)
-        val stepX = dx / distance * pathConfig.iconGap
-        val stepY = dy / distance * pathConfig.iconGap
-
-        // Draw icons along the line
-        var x = start.x
-        var y = start.y
-        while (kotlin.math.sqrt((x - start.x)*(x - start.x) + (y - start.y)*(y - start.y)) < distance) {
-            drawIntoCanvas { canvas ->
-                canvas.save()
-                canvas.translate(x - iconSizePx/2, y - iconSizePx/2)
-
-                with(icon) {
-                    draw(
-                        size = Size(iconSizePx, iconSizePx)
-                    )
-                }
-
-                canvas.restore()
-            }
-            x += stepX
-            y += stepY
         }
     }
 }
