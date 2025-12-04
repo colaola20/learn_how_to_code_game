@@ -240,10 +240,11 @@ fun GameControls(
                         exit = scaleOut() + fadeOut()
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.right_arrow),
+                            painter = painterResource(R.drawable.right),
                             contentDescription = "Right Arrow",
                             modifier = Modifier
-                                .fillMaxSize()
+                                .fillMaxSize(),
+                            tint = Color.Unspecified
                         )
                     }
                 }
