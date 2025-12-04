@@ -92,7 +92,7 @@ fun GameScreen(
     val icon: Painter = painterResource(id = R.drawable.starfish)
 
     // Animation state
-    var isPlaying by remember { mutableStateOf(0) }
+    var isPlaying by remember { mutableStateOf(1) }
     var position by remember { mutableStateOf(IntOffset(0, 0)) }
 
     Box(
@@ -138,7 +138,10 @@ fun GameScreen(
                         canvas.translate(x - iconSizePx/2, y - iconSizePx/2)
 
                         with(icon) {
-                            draw(size = Size(iconSizePx, iconSizePx))
+                            draw(
+                                size = Size(iconSizePx, iconSizePx),
+                                alpha = 0.8f
+                            )
                         }
 
                         canvas.restore()
@@ -256,7 +259,7 @@ fun GameControls(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                painter = painterResource(R.drawable.right_arrow),
+                painter = painterResource(R.drawable.right),
                 contentDescription = "Draggable Arrow",
                 modifier = Modifier
                     .size(64.dp)
@@ -346,7 +349,8 @@ fun TiledBackground(tileBitmap: ImageBitmap) {
                 drawImage(
                     image = tileBitmap,
                     topLeft = Offset(x * tileW*spacingFactor, y * tileH*spacingFactor),
-                    colorFilter = ColorFilter.tint(Color(0xFF2096f3))
+                    colorFilter = ColorFilter.tint(Color(0xFF2096f3)),
+                    alpha = 0.4f
                 )
             }
         }
