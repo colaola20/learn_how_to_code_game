@@ -253,7 +253,7 @@ fun GameControls(
             }
 
             Row (modifier = Modifier
-                .fillMaxWidth(0.5f)
+                .fillMaxWidth()
                 .padding(8.dp)
             ) {
                 Icon(
