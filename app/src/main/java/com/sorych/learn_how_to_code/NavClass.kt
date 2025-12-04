@@ -1,6 +1,6 @@
 package com.sorych.learn_how_to_code
 
-import GameScreen
+import com.sorych.learn_how_to_code.ui.game.GameScreen
 import LoginScreen
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost

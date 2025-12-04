@@ -9,7 +9,7 @@ data class PathConfig(
     val endX: Float,
     val endY: Float,
     val iconGap: Float = 130f,
-    val pathColor: Color = Color.Red,
+    val pathColor: Color = Color(0xFF82d4fa),
     val strokeWidth: Float = 1f
 )
 
