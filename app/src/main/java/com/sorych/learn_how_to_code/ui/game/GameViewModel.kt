@@ -16,9 +16,8 @@ class GameViewModel: ViewModel() {
 
     // Grid configuration
     val GridConfig = GridConfig(
-        rows = 10,
-        cols = 10,
-        cellSize = 64.dp
+        rows = 7,
+        cols = 13
     )
 
     private val _currentLevel = MutableStateFlow(1)

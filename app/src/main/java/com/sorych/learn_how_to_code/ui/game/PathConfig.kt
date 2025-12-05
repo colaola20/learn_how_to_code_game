@@ -20,9 +20,8 @@ data class LevelConfig(
 
 // Add this data class for grid configuration
 data class GridConfig(
-    val rows: Int = 10,
-    val cols: Int = 10,
-    val cellSize: Dp = 64.dp
+    val rows: Int = 7,
+    val cols: Int = 13
 )
 
 
@@ -33,46 +32,48 @@ object LevelConfigs {
                 levelNumber = 1,
                 paths = listOf(
                     PathConfig(
-                        startCell = IntOffset(1, 8),
-                        endCell = IntOffset(5, 8)
+                        startCell = IntOffset(1, 5), // top row = 0, bottom row = 6
+                        endCell = IntOffset(6, 5)
                     ),
                     PathConfig(
-                        startCell = IntOffset(5, 8),
-                        endCell = IntOffset(5, 4)
+                        startCell = IntOffset(6, 5),
+                        endCell = IntOffset(6, 1)
                     ),
                     PathConfig(
-                        startCell = IntOffset(5, 4),
-                        endCell = IntOffset(9, 4)
+                        startCell = IntOffset(6, 1),
+                        endCell = IntOffset(9, 1)
                     )
                 ),
                 backgroundColor = Color(0xFF82d4fa),
                 backgroundTile = R.drawable.sea_waves2
             )
+
             2 -> LevelConfig(
                 levelNumber = 2,
                 paths = listOf(
                     PathConfig(
-                        startCell = IntOffset(1, 2),
-                        endCell = IntOffset(9, 2)
+                        startCell = IntOffset(1, 1),
+                        endCell = IntOffset(9, 1)
                     ),
                     PathConfig(
-                        startCell = IntOffset(1, 8),
-                        endCell = IntOffset(9, 8)
+                        startCell = IntOffset(1, 5),
+                        endCell = IntOffset(9, 5)
                     )
                 ),
                 backgroundColor = Color(0xFF82d4fa),
                 backgroundTile = R.drawable.sea_waves2
             )
+
             3 -> LevelConfig(
                 levelNumber = 3,
                 paths = listOf(
                     PathConfig(
-                        startCell = IntOffset(1, 3),
-                        endCell = IntOffset(5, 5)
+                        startCell = IntOffset(1, 2),
+                        endCell = IntOffset(5, 4)
                     ),
                     PathConfig(
-                        startCell = IntOffset(5, 5),
-                        endCell = IntOffset(9, 7)
+                        startCell = IntOffset(5, 4),
+                        endCell = IntOffset(9, 6)
                     )
                 ),
                 backgroundColor = Color(0xFF82d4fa),

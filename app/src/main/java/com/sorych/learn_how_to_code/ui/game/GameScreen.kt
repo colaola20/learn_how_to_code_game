@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -67,13 +68,11 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sorych.learn_how_to_code.R
 import com.sorych.learn_how_to_code.ui.theme.Learn_how_to_codeTheme
+import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
 
 
-
-fun Float.dpToPx(context: Context): Int =
-    (this * context.resources.displayMetrics.density).toInt()
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -85,27 +84,52 @@ fun GameScreen(
     val context = LocalContext.current
     val levelConfig by viewModel.levelConfig.collectAsState()
     val gridConfig = viewModel.GridConfig
-    val tileSize = 64.dp
 
-    val tileBitmap = remember {
-        val drawable = AppCompatResources.getDrawable(context, R.drawable.sea_waves2)!!
-        drawable.toBitmap(
-            width = tileSize.value.dpToPx(context),
-            height = tileSize.value.dpToPx(context),
-            config = Bitmap.Config.ARGB_8888
-        ).asImageBitmap()
-    }
-
-    val icon: Painter = painterResource(id = R.drawable.starfish)
     val density = LocalDensity.current
+
+    // Top padding in DP for UI elements above the grid (if any)
+    val topPaddingDp = 100.dp
 
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(levelConfig.backgroundColor)
     ) {
-        val topPaddingPx = with(density) { 100.dp.toPx() }.toInt()
-        val cellSizePx = with(density) { gridConfig.cellSize.toPx() }.toInt()
+        val availableWidth = maxWidth
+        val availableHeight = maxHeight - topPaddingDp
+
+        val gridWidthPx = with(density) { availableWidth.toPx() }
+        val gridHeightPx = with(density) { availableHeight.toPx() }
+
+        // Calculate cell size based on available space
+        // Use min() to ensure cells are PERFECT SQUARES that fit in available space
+        val cellSizePx = remember(gridWidthPx, gridHeightPx) {
+            val widthPerCell = gridWidthPx / gridConfig.cols
+            val heightPerCell = gridHeightPx / gridConfig.rows
+            // Taking the minimum ensures:
+            // 1. Cells are perfect squares (same width and height)
+            // 2. Grid fits within available space on any device
+            min(widthPerCell, heightPerCell)
+        }
+
+        val gridTotalWidth = cellSizePx * gridConfig.cols
+        val gridTotalHeight = cellSizePx * gridConfig.rows
+
+        // Center the grid horizontally
+        val gridOffsetXPx = (gridWidthPx - gridTotalWidth) / 2
+        val gridOffsetYPx = (gridHeightPx - gridTotalHeight) / 2f
+
+        val tileBitmap = remember(cellSizePx) {
+            val tileSizePx = cellSizePx
+            val drawable = AppCompatResources.getDrawable(context, R.drawable.sea_waves2)!!
+            drawable.toBitmap(
+                width = tileSizePx.toInt(),
+                height = tileSizePx.toInt(),
+                config = Bitmap.Config.ARGB_8888
+            ).asImageBitmap()
+        }
+
+        val icon: Painter = painterResource(id = R.drawable.starfish)
 
         // Calculate starting position from first path
         val startingGridPosition = remember(levelConfig) {
@@ -115,12 +139,36 @@ fun GameScreen(
         var gridPosition by remember(levelConfig) { mutableStateOf(startingGridPosition) }
         var isPlaying by remember { mutableStateOf(0) }
 
-        TiledBackground(tileBitmap = tileBitmap)
+        TiledBackground(
+            tileBitmap = tileBitmap
+        )
 
         GridCanvas(
             gridConfig = gridConfig,
             paths = levelConfig.paths,
-            starIcon = icon
+            starIcon = icon,
+            cellSizePx = cellSizePx,
+            gridOffsetXPx = gridOffsetXPx,
+            gridOffsetYPx = gridOffsetYPx
+        )
+
+        AnimatedTurtle(
+            isPlaying = isPlaying,
+            gridPosition = gridPosition,
+            cellSizePx = cellSizePx,
+            gridOffsetXPx = gridOffsetXPx,
+            gridOffsetYPx = gridOffsetYPx,
+            onAnimationComplete = {
+                // This logic should be here, not just in GameControls
+                gridPosition = when (isPlaying) {
+                    1 -> gridPosition.copy(y = (gridPosition.y - 1).coerceAtLeast(0))
+                    2 -> gridPosition.copy(y = (gridPosition.y + 1).coerceAtMost(gridConfig.rows - 1))
+                    3 -> gridPosition.copy(x = (gridPosition.x - 1).coerceAtLeast(0))
+                    4 -> gridPosition.copy(x = (gridPosition.x + 1).coerceAtMost(gridConfig.cols - 1))
+                    else -> gridPosition
+                }
+                isPlaying = 0 // Reset the animation state
+            }
         )
 
         // UI Layer
@@ -129,22 +177,22 @@ fun GameScreen(
                 .fillMaxSize()
                 .zIndex(10f)
         ) {
+
             GameControls(
                 boxCount = levelConfig.paths.size,
                 isPlaying = isPlaying,
                 gridPosition = gridPosition,
                 cellSizePx = cellSizePx,
-                topPaddingPx = topPaddingPx,
                 onDirectionSelected = { direction ->
                     isPlaying = direction
                 },
                 onAnimationComplete = {
                     // Update grid position after animation
                     gridPosition = when (isPlaying) {
-                        1 -> gridPosition + IntOffset(0, -1)  // up
-                        2 -> gridPosition + IntOffset(0, 1)   // down
-                        3 -> gridPosition + IntOffset(-1, 0)  // left
-                        4 -> gridPosition + IntOffset(1, 0)   // right
+                        1 -> gridPosition.copy(y = (gridPosition.y - 1).coerceAtLeast(0))
+                        2 -> gridPosition.copy(y = (gridPosition.y + 1).coerceAtMost(gridConfig.rows - 1))
+                        3 -> gridPosition.copy(x = (gridPosition.x - 1).coerceAtLeast(0))
+                        4 -> gridPosition.copy(x = (gridPosition.x + 1).coerceAtMost(gridConfig.cols - 1))
                         else -> gridPosition
                     }
                     isPlaying = 0
@@ -154,13 +202,13 @@ fun GameScreen(
     }
 }
 
+
 @Composable
 fun GameControls(
     boxCount: Int,
     isPlaying: Int,
     gridPosition: IntOffset,
-    cellSizePx: Int,
-    topPaddingPx: Int,
+    cellSizePx: Float,
     onDirectionSelected: (Int) -> Unit,
     onAnimationComplete: () -> Unit
 ) {
@@ -290,20 +338,6 @@ fun GameControls(
                 )
             }
         }
-
-        // Animated turtle
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.TopStart
-        ) {
-            AnimatedTurtle(
-                isPlaying = isPlaying,
-                gridPosition = gridPosition,
-                cellSizePx = cellSizePx,
-                topPaddingPx = topPaddingPx,
-                onAnimationComplete = onAnimationComplete
-            )
-        }
     }
 }
 
@@ -312,78 +346,103 @@ fun GameControls(
 fun GridCanvas(
     gridConfig: GridConfig,
     paths: List<PathConfig>,
-    starIcon: Painter
+    starIcon: Painter,
+    cellSizePx: Float,
+    gridOffsetXPx: Float,
+    gridOffsetYPx: Float
 ) {
-    val density = LocalDensity.current
-    val cellSizePx = with(density) { gridConfig.cellSize.toPx() }
 
     Canvas(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 100.dp)
     ) {
-        // Draw grid lines
-        for (i in 0..gridConfig.cols) {
-            drawLine(
-                color = Color.White.copy(alpha = 0.3f),
-                start = Offset(i * cellSizePx, 0f),
-                end = Offset(i * cellSizePx, size.height),
-                strokeWidth = 1.dp.toPx()
-            )
-        }
-        for (i in 0..gridConfig.rows) {
-            drawLine(
-                color = Color.White.copy(alpha = 0.3f),
-                start = Offset(0f, i * cellSizePx),
-                end = Offset(size.width, i * cellSizePx),
-                strokeWidth = 1.dp.toPx()
-            )
-        }
+        val cellSize = min(
+            size.width /gridConfig.cols,
+            size.height / gridConfig.rows
+        )
 
-        // Draw paths and stars
-        paths.forEach { path ->
-            val startPx = Offset(
-                x = path.startCell.x * cellSizePx + cellSizePx / 2,
-                y = path.startCell.y * cellSizePx + cellSizePx / 2
-            )
-            val endPx = Offset(
-                x = path.endCell.x * cellSizePx + cellSizePx / 2,
-                y = path.endCell.y * cellSizePx + cellSizePx / 2
-            )
+        // Use draw scope translate so everything inside is relative to grid top-left
+        translate(left = gridOffsetXPx, top = gridOffsetYPx) {
+            val width = cellSizePx * gridConfig.cols
+            val height = cellSizePx * gridConfig.rows
 
-            drawLine(
-                color = Color(0xFF2096f3),
-                start = startPx,
-                end = endPx,
-                strokeWidth = 8.dp.toPx(),
-                cap = StrokeCap.Round
-            )
+            // Draw grid lines
+            for (i in 0..gridConfig.cols) {
+                drawLine(
+                    color = Color.White.copy(alpha = 0.3f),
+                    start = Offset(i * cellSizePx, 0f),
+                    end = Offset(i * cellSizePx, height),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
+            for (i in 0..gridConfig.rows) {
+                drawLine(
+                    color = Color.White.copy(alpha = 0.3f),
+                    start = Offset(0f, i * cellSizePx),
+                    end = Offset(width, i * cellSizePx),
+                    strokeWidth = 1.dp.toPx()
+                )
+            }
 
-            // Draw stars along the path
-            val dx = endPx.x - startPx.x
-            val dy = endPx.y - startPx.y
-            val distance = sqrt(dx * dx + dy * dy)
-            val stepX = dx / distance * cellSizePx
-            val stepY = dy / distance * cellSizePx
 
-            var x = startPx.x
-            var y = startPx.y
-            val iconSizePx = cellSizePx * 0.6f
+            // Helper: center of a cell (in grid local coordinates)
+            fun cellCenterPx(cellX: Int, cellY: Int): Offset {
+                return Offset(
+                    x = cellX * cellSizePx + cellSizePx / 2f,
+                    y = cellY * cellSizePx + cellSizePx / 2f
+                )
+            }
 
-            while (sqrt((x - startPx.x).pow(2) + (y - startPx.y).pow(2)) <= distance) {
-                drawIntoCanvas { canvas ->
-                    canvas.save()
-                    canvas.translate(x - iconSizePx / 2, y - iconSizePx / 2)
-                    with(starIcon) {
-                        draw(
-                            size = Size(iconSizePx, iconSizePx),
-                            alpha = 0.8f
+            // Draw paths and stars
+            paths.forEach { path ->
+                // Convert start/end cell -> center pixel positions (in grid-local coords)
+                val startCenter = cellCenterPx(path.startCell.x, path.startCell.y)
+                val endCenter = cellCenterPx(path.endCell.x, path.endCell.y)
+
+                drawLine(
+                    color = Color(0xFF2096f3),
+                    start = startCenter,
+                    end = endCenter,
+                    strokeWidth = 8.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+
+                // Determine steps (number of cells between start and end, inclusive)
+                val dxCells = path.endCell.x - path.startCell.x
+                val dyCells = path.endCell.y - path.startCell.y
+                val steps = maxOf(kotlin.math.abs(dxCells), kotlin.math.abs(dyCells))
+                if (steps == 0) {
+                    // single-cell path: draw a star at start
+                    drawIntoCanvas { canvas ->
+                        canvas.save()
+                        canvas.translate(
+                            startCenter.x - cellSizePx * 0.5f,
+                            startCenter.y - cellSizePx * 0.5f
                         )
+                        with(starIcon) {
+                            draw(size = Size(cellSizePx, cellSizePx), alpha = 0.85f)
+                        }
+                        canvas.restore()
                     }
-                    canvas.restore()
+                } else {
+                    // step along the path using linear interpolation between centers
+                    for (i in 0..steps) {
+                        val t = i.toFloat() / steps.toFloat() // 0..1
+                        val xPx = startCenter.x + (endCenter.x - startCenter.x) * t
+                        val yPx = startCenter.y + (endCenter.y - startCenter.y) * t
+
+                        drawIntoCanvas { canvas ->
+                            canvas.save()
+                            // translate so star's top-left aligns properly (centered in cell)
+                            canvas.translate(xPx - (cellSizePx * 0.5f), yPx - (cellSizePx * 0.5f))
+                            with(starIcon) {
+                                draw(size = Size(cellSizePx, cellSizePx), alpha = 0.85f)
+                            }
+                            canvas.restore()
+                        }
+                    }
                 }
-                x += stepX
-                y += stepY
             }
         }
     }
@@ -393,34 +452,44 @@ fun GridCanvas(
 fun AnimatedTurtle(
     isPlaying: Int,
     gridPosition: IntOffset,
-    cellSizePx: Int,
-    topPaddingPx: Int,
+    cellSizePx: Float,
+    gridOffsetXPx: Float,
+    gridOffsetYPx: Float,
     onAnimationComplete: () -> Unit
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "infinite")
+    // Convert dp to px once
+    val turtleSizePx = with(LocalDensity.current) { 48.dp.toPx() }
+    val turtleHalf = turtleSizePx / 2f
 
-    // Convert grid position to pixel position (center of cell)
-    val currentPixelPos = IntOffset(
-        x = gridPosition.x * cellSizePx + cellSizePx / 2,
-        y = gridPosition.y * cellSizePx + cellSizePx / 2 + topPaddingPx
+    // Calculate current center position in GRID-RELATED coordinates
+    val currentPos = Offset(
+        x = gridOffsetXPx + gridPosition.x * cellSizePx + cellSizePx / 2f,
+        y = gridOffsetYPx + gridPosition.y * cellSizePx + cellSizePx / 2f
     )
 
-    val targetPixelPos = when (isPlaying) {
-        0 -> currentPixelPos
-        1 -> currentPixelPos + IntOffset(0, -cellSizePx)  // up
-        2 -> currentPixelPos + IntOffset(0, cellSizePx)   // down
-        3 -> currentPixelPos + IntOffset(-cellSizePx, 0)  // left
-        else -> currentPixelPos + IntOffset(cellSizePx, 0) // right
+    // Decide the target grid position
+    val targetPos = when (isPlaying) {
+        1 -> currentPos.copy(y = currentPos.y - cellSizePx) // up
+        2 -> currentPos.copy(y = currentPos.y + cellSizePx) // down
+        3 -> currentPos.copy(x = currentPos.x - cellSizePx) // left
+        4 -> currentPos.copy(x = currentPos.x + cellSizePx) // right
+        else -> currentPos
     }
 
-    val pOffset by animateIntOffsetAsState(
-        targetValue = targetPixelPos,
-        animationSpec = tween(1500, easing = LinearEasing),
-        label = "position",
+    // Smooth animation
+    val animatedOffset by animateIntOffsetAsState(
+        targetValue = IntOffset(
+            targetPos.x.toInt(),
+            targetPos.y.toInt()
+        ),
+        animationSpec = tween(durationMillis = 900),
+        label = "turtle anim",
         finishedListener = { onAnimationComplete() }
     )
 
-    val rotation by infiniteTransition.animateFloat(
+    // Turtle continuous rotation
+    val infinite = rememberInfiniteTransition()
+    val rotation by infinite.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
@@ -433,15 +502,23 @@ fun AnimatedTurtle(
         painter = painterResource(R.drawable.turtle),
         contentDescription = "Animated Turtle",
         modifier = Modifier
-            .size(48.dp)
-            .offset { pOffset - IntOffset(24.dp.value.toInt(), 24.dp.value.toInt()) }
+            .size(64.dp)
+            .offset {
+                // Convert center position to top-left
+                IntOffset(
+                    animatedOffset.x - turtleHalf.toInt(),
+                    animatedOffset.y - turtleHalf.toInt()
+                )
+            }
             .rotate(rotation),
         tint = Color.Unspecified
     )
 }
 
 @Composable
-fun TiledBackground(tileBitmap: ImageBitmap) {
+fun TiledBackground(
+    tileBitmap: ImageBitmap
+) {
     Canvas(modifier = Modifier
         .fillMaxSize()
         .padding(top = 100.dp)
