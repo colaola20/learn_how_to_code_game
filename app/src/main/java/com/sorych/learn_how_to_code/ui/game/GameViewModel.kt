@@ -1,6 +1,7 @@
 package com.sorych.learn_how_to_code.ui.game
 
 import android.content.Context
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -12,6 +13,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class GameViewModel: ViewModel() {
+
+    // Grid configuration
+    val GridConfig = GridConfig(
+        rows = 10,
+        cols = 10,
+        cellSize = 64.dp
+    )
 
     private val _currentLevel = MutableStateFlow(1)
     val currentLevel: StateFlow<Int> = _currentLevel.asStateFlow()
