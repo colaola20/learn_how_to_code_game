@@ -1,6 +1,8 @@
 package com.sorych.learn_how_to_code.ui.game
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.sorych.learn_how_to_code.R
 
 data class PathConfig(
@@ -8,7 +10,7 @@ data class PathConfig(
     val startY: Float,
     val endX: Float,
     val endY: Float,
-    val iconGap: Float = 130f,
+    val iconGap: Float = 0.05f,
     val pathColor: Color = Color(0xFF82d4fa),
     val strokeWidth: Float = 1f
 )
@@ -19,6 +21,14 @@ data class LevelConfig(
     val backgroundColor: Color,
     val backgroundTile: Int
 )
+
+// Add this data class for grid configuration
+data class GridConfig(
+    val rows: Int = 8,
+    val cols: Int = 6,
+    val cellSize: Dp = 60.dp
+)
+
 
 object LevelConfigs {
     fun getLevel(levelNumber: Int): LevelConfig {
