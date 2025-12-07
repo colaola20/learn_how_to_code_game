@@ -216,8 +216,8 @@ fun GameControls(
     onDirectionSelected: (Int) -> Unit,
     onAnimationComplete: () -> Unit
 ) {
-    var dragBoxIndex by remember { mutableIntStateOf(-1) }
-    var droppedDirection by remember { mutableStateOf(-1) }
+    // Store a map of box index to direction (1=up, 2=down, 3=left, 4=right)
+    var droppedArrows by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
 
     Column(
         modifier = Modifier
@@ -250,7 +250,6 @@ fun GameControls(
                                 target = remember {
                                     object : DragAndDropTarget {
                                         override fun onDrop(event: DragAndDropEvent): Boolean {
-                                            dragBoxIndex = index
 
                                             // Extract the dropped arrow type from ClipData
                                             val item = event.toAndroidDragEvent().clipData.getItemAt(0)
@@ -264,7 +263,9 @@ fun GameControls(
                                                 "right" -> 4  // right
                                                 else -> -1
                                             }
-                                            droppedDirection = direction
+                                            // Add this arrow to the map at this index
+                                            droppedArrows = droppedArrows + (index to direction)
+
                                             onDirectionSelected(direction)
 
                                             return true
@@ -274,13 +275,16 @@ fun GameControls(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
+                        // Check if this box has an arrow dropped in it
+                        val arrowDirection = droppedArrows[index]
+
                         this@Row.AnimatedVisibility(
-                            visible = index == dragBoxIndex,
+                            visible = arrowDirection != null,
                             enter = scaleIn() + fadeIn(),
                             exit = scaleOut() + fadeOut()
                         ) {
                             // Show the correct arrow based on what was dropped
-                            val iconRes = when (droppedDirection) {
+                            val iconRes = when (arrowDirection) {
                                 1 -> R.drawable.up
                                 2 -> R.drawable.down
                                 3 -> R.drawable.left
