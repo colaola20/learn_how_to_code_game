@@ -101,45 +101,35 @@ fun GameScreen(
     // Animation state
     var isPlaying by remember { mutableStateOf(false) }
     var currentPathIndex by remember { mutableIntStateOf(0) }
-    var playerSequence by remember { mutableStateOf<List<Int>>(emptyList()) }       // !!!!!!!!!!
+    var playerSequence by remember { mutableStateOf<List<Int>>(emptyList()) }
     var showError by remember { mutableStateOf(false) }
     var showSuccess by remember { mutableStateOf(false) }
 
     // Get the correct sequence from the first path
     val correctSequence = levelConfig.paths.map { it.correctSequence }
     val startingGridPosition = levelConfig.paths.firstOrNull()?.startCell ?: IntOffset(0, 0)
+    // Current position - this is the TARGET position for the turtle
     var gridPosition by remember(levelConfig) { mutableStateOf(startingGridPosition) }
 
     // Animate through paths sequentially
-    LaunchedEffect(currentPathIndex) {
-        if (isPlaying && currentPathIndex < playerSequence.size) {
-            delay(900) // Match animation duration
-
-            // Move turtle based on current path's direction
-            val direction = playerSequence[currentPathIndex]
+    LaunchedEffect(isPlaying, currentPathIndex) {
+        if (isPlaying && currentPathIndex < levelConfig.paths.size) {
+            delay(1000)
             val currentPath = levelConfig.paths[currentPathIndex]
 
-            // Calculate how many steps to take based on path
-            val dx = currentPath.endCell.x - currentPath.startCell.x
-            val dy = currentPath.endCell.y - currentPath.startCell.y
-            val steps = maxOf(kotlin.math.abs(dx), kotlin.math.abs(dy))
+            // After animation, update position to end of current path
+            gridPosition = currentPath.endCell
 
-            // For now, move one cell at a time
-            gridPosition = when (direction) {
-                1 -> gridPosition.copy(y = (gridPosition.y - 1).coerceAtLeast(0))
-                2 -> gridPosition.copy(y = (gridPosition.y + 1).coerceAtMost(gridConfig.rows - 1))
-                3 -> gridPosition.copy(x = (gridPosition.x - 1).coerceAtLeast(0))
-                4 -> gridPosition.copy(x = (gridPosition.x + 1).coerceAtMost(gridConfig.cols - 1))
-                else -> gridPosition
-            }
-
-            currentPathIndex++
+            // Move to next path
+            val nextIndex = currentPathIndex + 1
 
             // Check if all paths are complete
-            if (currentPathIndex >= playerSequence.size) {
+            if (nextIndex >= levelConfig.paths.size) {
                 isPlaying = false
                 currentPathIndex = 0
                 showSuccess = true
+            } else {
+                currentPathIndex = nextIndex
             }
         }
     }
@@ -194,14 +184,13 @@ fun GameScreen(
         )
 
         AnimatedTurtle(
-            isPlaying = if (isPlaying && currentPathIndex < playerSequence.size) {
-                            playerSequence[currentPathIndex]
-                        } else 0,
+            isPlaying = isPlaying,
+            currentPathIndex = currentPathIndex,
+            paths = levelConfig.paths,
             gridPosition = gridPosition,
             cellSizePx = cellSizePx,
             gridOffsetXPx = gridOffsetXPx,
-            gridOffsetYPx = gridOffsetYPx,
-            onAnimationComplete = {/* Handled in LaunchedEffect */ }
+            gridOffsetYPx = gridOffsetYPx
         )
 
         // UI Layer
@@ -223,7 +212,7 @@ fun GameScreen(
                         currentPathIndex = 0
                         showError = false
                         showSuccess = false
-                        gridPosition = startingGridPosition // Reset position
+                        gridPosition = startingGridPosition // Reset to start
                     } else {
                         // Wrong sequence
                         showError = true
@@ -537,41 +526,42 @@ fun GridCanvas(
 
 @Composable
 fun AnimatedTurtle(
-    isPlaying: Int,
+    isPlaying: Boolean,
+    currentPathIndex: Int,
+    paths: List<PathConfig>,
     gridPosition: IntOffset,
     cellSizePx: Float,
     gridOffsetXPx: Float,
-    gridOffsetYPx: Float,
-    onAnimationComplete: () -> Unit
+    gridOffsetYPx: Float
 ) {
-    // Convert dp to px once
-    val turtleSizePx = with(LocalDensity.current) { 48.dp.toPx() }
+    // Convert cell size to Dp
+    val turtleSizeDp = with(LocalDensity.current) { cellSizePx.toDp() }
+    val turtleSizePx = cellSizePx
     val turtleHalf = turtleSizePx / 2f
 
+    // Determine the target position based on animation state
+    val targetGridPosition = if (isPlaying && currentPathIndex < paths.size) {
+        // Currently animating - move to end of current path
+        paths[currentPathIndex].endCell
+    } else {
+        // Not animating - stay at current position
+        gridPosition
+    }
+
     // Calculate current center position in GRID-RELATED coordinates
-    val currentPos = Offset(
+    val targetPixelPos = Offset(
         x = gridOffsetXPx + gridPosition.x * cellSizePx + cellSizePx / 2f,
         y = gridOffsetYPx + gridPosition.y * cellSizePx + cellSizePx / 2f
     )
 
-    // Decide the target grid position
-    val targetPos = when (isPlaying) {
-        1 -> currentPos.copy(y = currentPos.y - cellSizePx) // up
-        2 -> currentPos.copy(y = currentPos.y + cellSizePx) // down
-        3 -> currentPos.copy(x = currentPos.x - cellSizePx) // left
-        4 -> currentPos.copy(x = currentPos.x + cellSizePx) // right
-        else -> currentPos
-    }
-
-    // Smooth animation
+    // Smooth animation for position
     val animatedOffset by animateIntOffsetAsState(
         targetValue = IntOffset(
-            targetPos.x.toInt(),
-            targetPos.y.toInt()
+            targetPixelPos.x.toInt(),
+            targetPixelPos.y.toInt()
         ),
-        animationSpec = tween(durationMillis = 900),
-        label = "turtle anim",
-        finishedListener = { onAnimationComplete() }
+        animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+        label = "turtle position"
     )
 
     // Turtle continuous rotation
@@ -585,21 +575,27 @@ fun AnimatedTurtle(
         label = "rotation"
     )
 
-    Icon(
-        painter = painterResource(R.drawable.turtle),
-        contentDescription = "Animated Turtle",
-        modifier = Modifier
-            .size(64.dp)
-            .offset {
-                // Convert center position to top-left
-                IntOffset(
-                    animatedOffset.x - turtleHalf.toInt(),
-                    animatedOffset.y - turtleHalf.toInt()
-                )
-            }
-            .rotate(rotation),
-        tint = Color.Unspecified
-    )
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .padding(top = 100.dp)
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.turtle),
+            contentDescription = "Animated Turtle",
+            modifier = Modifier
+                .size(turtleSizeDp)
+                .offset {
+                    // Convert center position to top-left
+                    IntOffset(
+                        animatedOffset.x - turtleHalf.toInt(),
+                        animatedOffset.y - turtleHalf.toInt()
+                    )
+                }
+                .rotate(rotation)
+                .zIndex(5f),
+            tint = Color.Unspecified
+        )
+    }
 }
 
 @Composable
