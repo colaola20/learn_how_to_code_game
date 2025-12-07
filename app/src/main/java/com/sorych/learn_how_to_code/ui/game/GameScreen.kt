@@ -22,6 +22,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -485,6 +486,49 @@ fun GameControls(
                         ),
                     tint = Color.Unspecified
                 )
+            }
+        }
+        Box(modifier=Modifier.fillMaxSize().padding(20.dp)) {
+            Row(modifier=Modifier
+                .fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,  // Fixed
+                horizontalArrangement = Arrangement.Start
+            ) {
+                // Exit Game
+                Button(
+                    onClick = {
+                        // Convert map to ordered list
+                        val playerSequence = (0 until paths.size).mapNotNull { index ->
+                            droppedArrows[index]
+                        }
+                        onPlayClicked(playerSequence)
+                    },
+                    contentPadding = PaddingValues(5.dp), // Remove default padding
+                    modifier = Modifier
+                        .size(48.dp)
+                        .border(
+                            width = 2.dp,
+                            color = Color(0xFF3f51b5),
+                            shape = CircleShape
+                        ),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF3f51b5) // background color
+                    ),
+
+                    ) {
+                    Icon(
+                        painter = painterResource(R.drawable.exit),
+                        tint = Color(0xFFf1d6bd),
+                        contentDescription = "Play icon",
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
+            Row(modifier=Modifier
+                .fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,  // Fixed
+                horizontalArrangement = Arrangement.End
+            ) {
                 // Play Button
                 Button(
                     onClick = {
@@ -509,6 +553,35 @@ fun GameControls(
                     ) {
                     Icon(
                         painter = painterResource(R.drawable.play),
+                        tint = Color(0xFFf1d6bd),
+                        contentDescription = "Play icon",
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                // Next Game
+                Button(
+                    onClick = {
+                        // Convert map to ordered list
+                        val playerSequence = (0 until paths.size).mapNotNull { index ->
+                            droppedArrows[index]
+                        }
+                        onPlayClicked(playerSequence)
+                    },
+                    contentPadding = PaddingValues(5.dp), // Remove default padding
+                    modifier = Modifier
+                        .size(48.dp)
+                        .border(
+                            width = 2.dp,
+                            color = Color(0xFF3f51b5),
+                            shape = CircleShape
+                        ),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF3f51b5) // background color
+                    ),
+
+                    ) {
+                    Icon(
+                        painter = painterResource(R.drawable.pointing_right),
                         tint = Color(0xFFf1d6bd),
                         contentDescription = "Play icon",
                         modifier = Modifier.size(32.dp)
