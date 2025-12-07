@@ -32,8 +32,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -63,15 +66,18 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sorych.learn_how_to_code.R
 import com.sorych.learn_how_to_code.ui.theme.Learn_how_to_codeTheme
+import kotlinx.coroutines.delay
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -88,11 +94,55 @@ fun GameScreen(
     val context = LocalContext.current
     val levelConfig by viewModel.levelConfig.collectAsState()
     val gridConfig = viewModel.GridConfig
-
     val density = LocalDensity.current
-
     // Top padding in DP for UI elements above the grid (if any)
     val topPaddingDp = 100.dp
+
+    // Animation state
+    var isPlaying by remember { mutableStateOf(false) }
+    var currentPathIndex by remember { mutableIntStateOf(0) }
+    var playerSequence by remember { mutableStateOf<List<Int>>(emptyList()) }       // !!!!!!!!!!
+    var showError by remember { mutableStateOf(false) }
+    var showSuccess by remember { mutableStateOf(false) }
+
+    // Get the correct sequence from the first path
+    val correctSequence = levelConfig.paths.map { it.correctSequence }
+    val startingGridPosition = levelConfig.paths.firstOrNull()?.startCell ?: IntOffset(0, 0)
+    var gridPosition by remember(levelConfig) { mutableStateOf(startingGridPosition) }
+
+    // Animate through paths sequentially
+    LaunchedEffect(currentPathIndex) {
+        if (isPlaying && currentPathIndex < playerSequence.size) {
+            delay(900) // Match animation duration
+
+            // Move turtle based on current path's direction
+            val direction = playerSequence[currentPathIndex]
+            val currentPath = levelConfig.paths[currentPathIndex]
+
+            // Calculate how many steps to take based on path
+            val dx = currentPath.endCell.x - currentPath.startCell.x
+            val dy = currentPath.endCell.y - currentPath.startCell.y
+            val steps = maxOf(kotlin.math.abs(dx), kotlin.math.abs(dy))
+
+            // For now, move one cell at a time
+            gridPosition = when (direction) {
+                1 -> gridPosition.copy(y = (gridPosition.y - 1).coerceAtLeast(0))
+                2 -> gridPosition.copy(y = (gridPosition.y + 1).coerceAtMost(gridConfig.rows - 1))
+                3 -> gridPosition.copy(x = (gridPosition.x - 1).coerceAtLeast(0))
+                4 -> gridPosition.copy(x = (gridPosition.x + 1).coerceAtMost(gridConfig.cols - 1))
+                else -> gridPosition
+            }
+
+            currentPathIndex++
+
+            // Check if all paths are complete
+            if (currentPathIndex >= playerSequence.size) {
+                isPlaying = false
+                currentPathIndex = 0
+                showSuccess = true
+            }
+        }
+    }
 
     BoxWithConstraints(
         modifier = Modifier
@@ -101,7 +151,6 @@ fun GameScreen(
     ) {
         val availableWidth = maxWidth
         val availableHeight = maxHeight - topPaddingDp
-
         val gridWidthPx = with(density) { availableWidth.toPx() }
         val gridHeightPx = with(density) { availableHeight.toPx() }
 
@@ -110,9 +159,6 @@ fun GameScreen(
         val cellSizePx = remember(gridWidthPx, gridHeightPx) {
             val widthPerCell = gridWidthPx / gridConfig.cols
             val heightPerCell = gridHeightPx / gridConfig.rows
-            // Taking the minimum ensures:
-            // 1. Cells are perfect squares (same width and height)
-            // 2. Grid fits within available space on any device
             min(widthPerCell, heightPerCell)
         }
 
@@ -134,15 +180,6 @@ fun GameScreen(
         }
 
         val icon: Painter = painterResource(id = R.drawable.starfish)
-
-        // Calculate starting position from first path
-        val startingGridPosition = remember(levelConfig) {
-            levelConfig.paths.firstOrNull()?.startCell ?: IntOffset(0, 0)
-        }
-
-        var gridPosition by remember(levelConfig) { mutableStateOf(startingGridPosition) }
-        var isPlaying by remember { mutableStateOf(0) }
-
         TiledBackground(
             tileBitmap = tileBitmap
         )
@@ -157,22 +194,14 @@ fun GameScreen(
         )
 
         AnimatedTurtle(
-            isPlaying = isPlaying,
+            isPlaying = if (isPlaying && currentPathIndex < playerSequence.size) {
+                            playerSequence[currentPathIndex]
+                        } else 0,
             gridPosition = gridPosition,
             cellSizePx = cellSizePx,
             gridOffsetXPx = gridOffsetXPx,
             gridOffsetYPx = gridOffsetYPx,
-            onAnimationComplete = {
-                // This logic should be here, not just in GameControls
-                gridPosition = when (isPlaying) {
-                    1 -> gridPosition.copy(y = (gridPosition.y - 1).coerceAtLeast(0))
-                    2 -> gridPosition.copy(y = (gridPosition.y + 1).coerceAtMost(gridConfig.rows - 1))
-                    3 -> gridPosition.copy(x = (gridPosition.x - 1).coerceAtLeast(0))
-                    4 -> gridPosition.copy(x = (gridPosition.x + 1).coerceAtMost(gridConfig.cols - 1))
-                    else -> gridPosition
-                }
-                isPlaying = 0 // Reset the animation state
-            }
+            onAnimationComplete = {/* Handled in LaunchedEffect */ }
         )
 
         // UI Layer
@@ -183,25 +212,45 @@ fun GameScreen(
         ) {
 
             GameControls(
-                boxCount = levelConfig.paths.size,
-                isPlaying = isPlaying,
-                gridPosition = gridPosition,
-                cellSizePx = cellSizePx,
-                onDirectionSelected = { direction ->
-                    isPlaying = direction
-                },
-                onAnimationComplete = {
-                    // Update grid position after animation
-                    gridPosition = when (isPlaying) {
-                        1 -> gridPosition.copy(y = (gridPosition.y - 1).coerceAtLeast(0))
-                        2 -> gridPosition.copy(y = (gridPosition.y + 1).coerceAtMost(gridConfig.rows - 1))
-                        3 -> gridPosition.copy(x = (gridPosition.x - 1).coerceAtLeast(0))
-                        4 -> gridPosition.copy(x = (gridPosition.x + 1).coerceAtMost(gridConfig.cols - 1))
-                        else -> gridPosition
+                paths = levelConfig.paths,
+                onPlayClicked = { sequence ->
+                    // Validate the sequence
+                    if (sequence.size == correctSequence.size &&
+                        sequence == correctSequence) {
+                        // Correct! Start animation
+                        playerSequence = sequence
+                        isPlaying = true
+                        currentPathIndex = 0
+                        showError = false
+                        showSuccess = false
+                        gridPosition = startingGridPosition // Reset position
+                    } else {
+                        // Wrong sequence
+                        showError = true
+                        showSuccess = false
                     }
-                    isPlaying = 0
                 }
             )
+            // Feedback messages
+            if (showError) {
+                Text(
+                    text = "Incorrect sequence! Try again.",
+                    color = Color.Red,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+
+            if (showSuccess) {
+                Text(
+                    text = "Success! Level Complete! 🎉",
+                    color = Color.Green,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
         }
     }
 }
@@ -209,12 +258,9 @@ fun GameScreen(
 
 @Composable
 fun GameControls(
-    boxCount: Int,
-    isPlaying: Int,
-    gridPosition: IntOffset,
-    cellSizePx: Float,
-    onDirectionSelected: (Int) -> Unit,
-    onAnimationComplete: () -> Unit
+    paths: List<PathConfig>, // Pass all paths to know how many boxes and correct sequences
+    onPlayClicked: (List<Int>) -> Unit, // Callback with player's sequence
+    modifier: Modifier = Modifier
 ) {
     // Store a map of box index to direction (1=up, 2=down, 3=left, 4=right)
     var droppedArrows by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
@@ -232,7 +278,7 @@ fun GameControls(
                     .fillMaxWidth(0.5f)
                     .padding(8.dp)
             ) {
-                repeat(boxCount) { index ->
+                repeat(paths.size) { index ->
                     Box(
                         modifier = Modifier
                             .weight(1f)
@@ -265,8 +311,6 @@ fun GameControls(
                                             }
                                             // Add this arrow to the map at this index
                                             droppedArrows = droppedArrows + (index to direction)
-
-                                            onDirectionSelected(direction)
 
                                             return true
                                         }
@@ -364,6 +408,21 @@ fun GameControls(
                         ),
                     tint = Color.Unspecified
                 )
+                // Play Button
+                Button(
+                    onClick = {
+                        // Convert map to ordered list
+                        val playerSequence = (0 until paths.size).mapNotNull { index ->
+                            droppedArrows[index]
+                        }
+                        onPlayClicked(playerSequence)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                ) {
+                    Text("Play", fontSize = 20.sp)
+                }
             }
         }
     }
