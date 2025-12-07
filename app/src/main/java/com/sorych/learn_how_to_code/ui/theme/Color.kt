@@ -11,3 +11,5 @@ val SandyBeige = Color(0xFFf1d6bd)      // beach / accents
 val WhiteFoam = Color(0xFFFFFFFF)       // text / highlights
 
 val wavesColor = Color(0xFF04a9f4)
+
+val arrowsColor = Color(0xFF3f51b5)

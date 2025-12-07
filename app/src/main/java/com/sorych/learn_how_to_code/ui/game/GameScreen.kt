@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -45,7 +46,10 @@ import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.draganddrop.mimeTypes
+import androidx.compose.ui.draganddrop.toAndroidDragEvent
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -213,14 +217,16 @@ fun GameControls(
     onAnimationComplete: () -> Unit
 ) {
     var dragBoxIndex by remember { mutableIntStateOf(-1) }
+    var droppedDirection by remember { mutableStateOf(-1) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(20.dp)
     ) {
-        // Drop zones
+
         Row(modifier = Modifier.fillMaxWidth()) {
+            // Drop zones
             Row(
                 modifier = Modifier
                     .fillMaxWidth(0.5f)
@@ -232,7 +238,9 @@ fun GameControls(
                             .weight(1f)
                             .size(80.dp)
                             .padding(10.dp)
-                            .border(1.dp, Color.Black)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFf1d6bd))  // light blue-gray background
+                            .border(2.dp, Color(0xFF3F51B5), RoundedCornerShape(12.dp))
                             .dragAndDropTarget(
                                 shouldStartDragAndDrop = { event ->
                                     event
@@ -244,12 +252,19 @@ fun GameControls(
                                         override fun onDrop(event: DragAndDropEvent): Boolean {
                                             dragBoxIndex = index
 
-                                            val direction = when (index) {
-                                                0 -> 1  // up
-                                                1 -> 2  // down
-                                                2 -> 3  // left
-                                                else -> 4  // right
+                                            // Extract the dropped arrow type from ClipData
+                                            val item = event.toAndroidDragEvent().clipData.getItemAt(0)
+                                            val droppedText = item.text.toString()
+
+                                            // Map arrow text to direction
+                                            val direction = when (droppedText.lowercase()) {
+                                                "up" -> 1  // up
+                                                "down" -> 2  // down
+                                                "left" -> 3  // left
+                                                "right" -> 4  // right
+                                                else -> -1
                                             }
+                                            droppedDirection = direction
                                             onDirectionSelected(direction)
 
                                             return true
@@ -264,9 +279,18 @@ fun GameControls(
                             enter = scaleIn() + fadeIn(),
                             exit = scaleOut() + fadeOut()
                         ) {
+                            // Show the correct arrow based on what was dropped
+                            val iconRes = when (droppedDirection) {
+                                1 -> R.drawable.up
+                                2 -> R.drawable.down
+                                3 -> R.drawable.left
+                                4 -> R.drawable.right
+                                else -> R.drawable.right // fallback
+                            }
+
                             Icon(
-                                painter = painterResource(R.drawable.right),
-                                contentDescription = "Right Arrow",
+                                painter = painterResource(iconRes),
+                                contentDescription = "Dropped Arrow",
                                 modifier = Modifier.fillMaxSize(),
                                 tint = Color.Unspecified
                             )
@@ -288,7 +312,7 @@ fun GameControls(
                         .dragAndDropSource(
                             transferData = { offset ->
                                 DragAndDropTransferData(
-                                    clipData = ClipData.newPlainText("left", "Left")
+                                    clipData = ClipData.newPlainText("arrow", "left")
                                 )
                             }
                         ),
@@ -302,7 +326,7 @@ fun GameControls(
                         .dragAndDropSource(
                             transferData = { offset ->
                                 DragAndDropTransferData(
-                                    clipData = ClipData.newPlainText("up", "Up")
+                                    clipData = ClipData.newPlainText("arrow", "up")
                                 )
                             }
                         ),
@@ -316,7 +340,7 @@ fun GameControls(
                         .dragAndDropSource(
                             transferData = { offset ->
                                 DragAndDropTransferData(
-                                    clipData = ClipData.newPlainText("right", "Right")
+                                    clipData = ClipData.newPlainText("arrow", "right")
                                 )
                             }
                         ),
@@ -330,7 +354,7 @@ fun GameControls(
                         .dragAndDropSource(
                             transferData = { offset ->
                                 DragAndDropTransferData(
-                                    clipData = ClipData.newPlainText("down", "Down")
+                                    clipData = ClipData.newPlainText("arrow", "down")
                                 )
                             }
                         ),
