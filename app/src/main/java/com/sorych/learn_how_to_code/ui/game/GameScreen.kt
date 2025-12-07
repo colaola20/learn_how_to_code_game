@@ -249,6 +249,11 @@ fun GameScreen(
                         .padding(horizontal = 20.dp, vertical = 12.dp)
                         .shadow(4.dp, RoundedCornerShape(12.dp))
                 )
+                // Auto-hide after 3 seconds
+                LaunchedEffect(showError) {
+                    delay(3000)
+                    showError = false
+                }
             }
 
             // Success message - center overlay
@@ -270,6 +275,12 @@ fun GameScreen(
                         .padding(horizontal = 24.dp, vertical = 16.dp)
                         .shadow(6.dp, RoundedCornerShape(16.dp))
                 )
+                // Auto-hide after 3 seconds
+                LaunchedEffect(showSuccess) {
+                    delay(3000)
+                    showSuccess = false
+                }
+
             }
         }
     }
