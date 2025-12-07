@@ -101,6 +101,11 @@ fun GameScreen(
     // Top padding in DP for UI elements above the grid (if any)
     val topPaddingDp = 100.dp
 
+    // Track current game index
+    var currentGameIndex by remember { mutableIntStateOf(0) }
+    val currentGame = levelConfig.games.getOrNull(currentGameIndex) ?: levelConfig.games.first()
+
+
     // Animation state
     var isPlaying by remember { mutableStateOf(false) }
     var currentPathIndex by remember { mutableIntStateOf(0) }
@@ -109,16 +114,16 @@ fun GameScreen(
     var showSuccess by remember { mutableStateOf(false) }
 
     // Get the correct sequence from the first path
-    val correctSequence = levelConfig.paths.map { it.correctSequence }
-    val startingGridPosition = levelConfig.paths.firstOrNull()?.startCell ?: IntOffset(0, 0)
+    val correctSequence = currentGame.paths.map { it.correctSequence }
+    val startingGridPosition = currentGame.paths.firstOrNull()?.startCell ?: IntOffset(0, 0)
     // Current position - this is the TARGET position for the turtle
-    var gridPosition by remember(levelConfig) { mutableStateOf(startingGridPosition) }
+    var gridPosition by remember(levelConfig, currentGameIndex) { mutableStateOf(startingGridPosition) }
 
     // Animate through paths sequentially
     LaunchedEffect(isPlaying, currentPathIndex) {
-        if (isPlaying && currentPathIndex < levelConfig.paths.size) {
+        if (isPlaying && currentPathIndex < currentGame.paths.size) {
             delay(1000)
-            val currentPath = levelConfig.paths[currentPathIndex]
+            val currentPath = currentGame.paths[currentPathIndex]
 
             // After animation, update position to end of current path
             gridPosition = currentPath.endCell
@@ -127,10 +132,16 @@ fun GameScreen(
             val nextIndex = currentPathIndex + 1
 
             // Check if all paths are complete
-            if (nextIndex >= levelConfig.paths.size) {
+            if (nextIndex >= currentGame.paths.size) {
                 isPlaying = false
                 currentPathIndex = 0
                 showSuccess = true
+                // Move to next game after a delay
+                delay(2000)
+                if (currentGameIndex < levelConfig.games.size - 1) {
+                    currentGameIndex++
+                    gridPosition = levelConfig.games[currentGameIndex].paths.firstOrNull()?.startCell ?: IntOffset(0, 0)
+                }
             } else {
                 currentPathIndex = nextIndex
             }
@@ -179,7 +190,7 @@ fun GameScreen(
 
         GridCanvas(
             gridConfig = gridConfig,
-            paths = levelConfig.paths,
+            paths = currentGame.paths,
             starIcon = icon,
             cellSizePx = cellSizePx,
             gridOffsetXPx = gridOffsetXPx,
@@ -189,7 +200,7 @@ fun GameScreen(
         AnimatedTurtle(
             isPlaying = isPlaying,
             currentPathIndex = currentPathIndex,
-            paths = levelConfig.paths,
+            paths = currentGame.paths,
             gridPosition = gridPosition,
             cellSizePx = cellSizePx,
             gridOffsetXPx = gridOffsetXPx,
@@ -204,7 +215,7 @@ fun GameScreen(
         ) {
 
             GameControls(
-                paths = levelConfig.paths,
+                paths = currentGame.paths,
                 onPlayClicked = { sequence ->
                     // Validate the sequence
                     if (sequence.size == correctSequence.size &&
@@ -221,6 +232,15 @@ fun GameScreen(
                         showError = true
                         showSuccess = false
                     }
+                },
+                onResetClicked = {
+                    // Reset current game
+                    playerSequence = emptyList()
+                    isPlaying = false
+                    currentPathIndex = 0
+                    showError = false
+                    showSuccess = false
+                    gridPosition = startingGridPosition
                 }
             )
 
@@ -262,8 +282,13 @@ fun GameScreen(
                 enter = fadeIn() + scaleIn(),
                 exit = fadeOut() + scaleOut()
             ) {
+                val message = if (currentGameIndex >= levelConfig.games.size - 1) {
+                    "Level Complete! 🎉"
+                } else {
+                    "Success! Next game..."
+                }
                 Text(
-                    text = "Success! Level Complete! 🎉",
+                    text = message,
                     color = Color.White,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.ExtraBold,
@@ -280,6 +305,21 @@ fun GameScreen(
                     delay(3000)
                     showSuccess = false
                 }
+                // Game progress indicator
+                Text(
+                    text = "Game ${currentGameIndex + 1}/${levelConfig.games.size}",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 16.dp)
+                        .background(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
 
             }
         }
@@ -291,10 +331,16 @@ fun GameScreen(
 fun GameControls(
     paths: List<PathConfig>, // Pass all paths to know how many boxes and correct sequences
     onPlayClicked: (List<Int>) -> Unit, // Callback with player's sequence
+    onResetClicked: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Store a map of box index to direction (1=up, 2=down, 3=left, 4=right)
     var droppedArrows by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
+
+    // Reset dropped arrows when paths change (new game)
+    LaunchedEffect(paths) {
+        droppedArrows = emptyMap()
+    }
 
     Column(
         modifier = Modifier
@@ -532,14 +578,6 @@ fun GridCanvas(
                 val startCenter = cellCenterPx(path.startCell.x, path.startCell.y)
                 val endCenter = cellCenterPx(path.endCell.x, path.endCell.y)
 
-                drawLine(
-                    color = Color(0xFF2096f3),
-                    start = startCenter,
-                    end = endCenter,
-                    strokeWidth = 8.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-
                 // Determine steps (number of cells between start and end, inclusive)
                 val dxCells = path.endCell.x - path.startCell.x
                 val dyCells = path.endCell.y - path.startCell.y
@@ -553,7 +591,7 @@ fun GridCanvas(
                             startCenter.y - cellSizePx * 0.5f
                         )
                         with(starIcon) {
-                            draw(size = Size(cellSizePx, cellSizePx), alpha = 0.85f)
+                            draw(size = Size(cellSizePx, cellSizePx), alpha = 0.6f)
                         }
                         canvas.restore()
                     }
@@ -569,7 +607,7 @@ fun GridCanvas(
                             // translate so star's top-left aligns properly (centered in cell)
                             canvas.translate(xPx - (cellSizePx * 0.5f), yPx - (cellSizePx * 0.5f))
                             with(starIcon) {
-                                draw(size = Size(cellSizePx, cellSizePx), alpha = 0.85f)
+                                draw(size = Size(cellSizePx, cellSizePx), alpha = 0.6f)
                             }
                             canvas.restore()
                         }

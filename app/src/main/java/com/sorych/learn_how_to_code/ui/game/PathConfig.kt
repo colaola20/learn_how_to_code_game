@@ -6,6 +6,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.sorych.learn_how_to_code.R
 
+
+data class GameSequence(
+    val paths: List<PathConfig>
+)
 data class PathConfig(
     val startCell: IntOffset,
     val endCell: IntOffset,
@@ -14,7 +18,8 @@ data class PathConfig(
 
 data class LevelConfig(
     val levelNumber: Int,
-    val paths: List<PathConfig>,
+    val games: List<GameSequence>,
+//    val paths: List<PathConfig>,
     val backgroundColor: Color,
     val backgroundTile: Int
 )
@@ -31,59 +36,34 @@ object LevelConfigs {
         return when (levelNumber) {
             1 -> LevelConfig(
                 levelNumber = 1,
-                paths = listOf(
-                    PathConfig(
-                        startCell = IntOffset(1, 5), // top row = 0, bottom row = 6
-                        endCell = IntOffset(6, 5),
-                        correctSequence = 4
+                games = listOf(
+                    // Game 1
+                    GameSequence(
+                        paths = listOf(
+                            PathConfig(IntOffset(1,5), IntOffset(6,5), 4),
+                            PathConfig(IntOffset(6,5), IntOffset(6,1), 1),
+                            PathConfig(IntOffset(6,1), IntOffset(9,1), 4)
+                        )
                     ),
-                    PathConfig(
-                        startCell = IntOffset(6, 5),
-                        endCell = IntOffset(6, 1),
-                        correctSequence = 1
+                    // Game 2
+                    GameSequence(
+                        paths = listOf(
+                            PathConfig(IntOffset(0,0), IntOffset(3,3), 2),
+                            PathConfig(IntOffset(3,3), IntOffset(6,6), 4)
+                        )
                     ),
-                    PathConfig(
-                        startCell = IntOffset(6, 1),
-                        endCell = IntOffset(9, 1),
-                        correctSequence = 4
+                    // Game 3
+                    GameSequence(
+                        paths = listOf(
+                            PathConfig(IntOffset(2,2), IntOffset(5,5), 3),
+                            PathConfig(IntOffset(5,5), IntOffset(8,2), 1)
+                        )
                     )
                 ),
                 backgroundColor = Color(0xFF82d4fa),
                 backgroundTile = R.drawable.sea_waves2
             )
-
-//            2 -> LevelConfig(
-//                levelNumber = 2,
-//                paths = listOf(
-//                    PathConfig(
-//                        startCell = IntOffset(1, 1),
-//                        endCell = IntOffset(9, 1)
-//                    ),
-//                    PathConfig(
-//                        startCell = IntOffset(1, 5),
-//                        endCell = IntOffset(9, 5)
-//                    )
-//                ),
-//                backgroundColor = Color(0xFF82d4fa),
-//                backgroundTile = R.drawable.sea_waves2
-//            )
-//
-//            3 -> LevelConfig(
-//                levelNumber = 3,
-//                paths = listOf(
-//                    PathConfig(
-//                        startCell = IntOffset(1, 2),
-//                        endCell = IntOffset(5, 4)
-//                    ),
-//                    PathConfig(
-//                        startCell = IntOffset(5, 4),
-//                        endCell = IntOffset(9, 6)
-//                    )
-//                ),
-//                backgroundColor = Color(0xFF82d4fa),
-//                backgroundTile = R.drawable.sea_waves2
-//            )
-            else -> getLevel(1) // Default to level 1
+            else -> getLevel(1)
         }
     }
 }
