@@ -492,7 +492,10 @@ fun GameControls(
             Row(modifier=Modifier
                 .fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically,  // Fixed
-                horizontalArrangement = Arrangement.Start
+                horizontalArrangement = Arrangement.spacedBy(
+                    space = 8.dp,               // space between children
+                    alignment = Alignment.Start     // align all children to the end
+                )
             ) {
                 // Exit Game
                 Button(
@@ -523,11 +526,43 @@ fun GameControls(
                         modifier = Modifier.size(32.dp)
                     )
                 }
+                // Next Game
+                Button(
+                    onClick = {
+                        // Convert map to ordered list
+                        val playerSequence = (0 until paths.size).mapNotNull { index ->
+                            droppedArrows[index]
+                        }
+                        onPlayClicked(playerSequence)
+                    },
+                    contentPadding = PaddingValues(5.dp), // Remove default padding
+                    modifier = Modifier
+                        .size(48.dp)
+                        .border(
+                            width = 2.dp,
+                            color = Color(0xFF3f51b5),
+                            shape = CircleShape
+                        ),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF3f51b5) // background color
+                    ),
+
+                    ) {
+                    Icon(
+                        painter = painterResource(R.drawable.pointing_right),
+                        tint = Color(0xFFf1d6bd),
+                        contentDescription = "Play icon",
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
             }
             Row(modifier=Modifier
                 .fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically,  // Fixed
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.spacedBy(
+                    space = 8.dp,               // space between children
+                    alignment = Alignment.End     // align all children to the end
+                )
             ) {
                 // Play Button
                 Button(
@@ -558,7 +593,8 @@ fun GameControls(
                         modifier = Modifier.size(32.dp)
                     )
                 }
-                // Next Game
+
+                // Reset Game
                 Button(
                     onClick = {
                         // Convert map to ordered list
@@ -581,7 +617,7 @@ fun GameControls(
 
                     ) {
                     Icon(
-                        painter = painterResource(R.drawable.pointing_right),
+                        painter = painterResource(R.drawable.reset),
                         tint = Color(0xFFf1d6bd),
                         contentDescription = "Play icon",
                         modifier = Modifier.size(32.dp)
