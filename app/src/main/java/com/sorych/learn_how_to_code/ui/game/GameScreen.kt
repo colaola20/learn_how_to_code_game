@@ -25,14 +25,17 @@ import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -220,24 +223,52 @@ fun GameScreen(
                     }
                 }
             )
-            // Feedback messages
-            if (showError) {
+
+        }
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            // Error message - top of the screen
+            AnimatedVisibility(
+                visible = showError,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
                 Text(
                     text = "Incorrect sequence! Try again.",
-                    color = Color.Red,
+                    color = Color.White,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier
+                        .padding(top = 40.dp)
+                        .background(
+                            color = Color(0xFFE53935), // deep red
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .shadow(4.dp, RoundedCornerShape(12.dp))
                 )
             }
 
-            if (showSuccess) {
+            // Success message - center overlay
+            AnimatedVisibility(
+                visible = showSuccess,
+                enter = fadeIn() + scaleIn(),
+                exit = fadeOut() + scaleOut()
+            ) {
                 Text(
                     text = "Success! Level Complete! 🎉",
-                    color = Color.Green,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(16.dp)
+                    color = Color.White,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier
+                        .background(
+                            color = Color(0xFF43A047), // deep green
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                        .shadow(6.dp, RoundedCornerShape(16.dp))
                 )
             }
         }
@@ -406,11 +437,25 @@ fun GameControls(
                         }
                         onPlayClicked(playerSequence)
                     },
+                    contentPadding = PaddingValues(5.dp), // Remove default padding
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 16.dp)
-                ) {
-                    Text("Play", fontSize = 20.sp)
+                        .size(48.dp)
+                        .border(
+                            width = 2.dp,
+                            color = Color(0xFF3f51b5),
+                            shape = CircleShape
+                        ),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF3f51b5) // background color
+                    ),
+
+                    ) {
+                    Icon(
+                        painter = painterResource(R.drawable.play),
+                        tint = Color(0xFFf1d6bd),
+                        contentDescription = "Play icon",
+                        modifier = Modifier.size(32.dp)
+                    )
                 }
             }
         }
