@@ -3,7 +3,6 @@ package com.sorych.learn_how_to_code.ui.game
 import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipDescription
-import android.content.Context
 import android.graphics.Bitmap
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.animation.AnimatedVisibility
@@ -62,7 +61,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.translate
@@ -72,7 +70,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -83,10 +80,6 @@ import com.sorych.learn_how_to_code.R
 import com.sorych.learn_how_to_code.ui.theme.Learn_how_to_codeTheme
 import kotlinx.coroutines.delay
 import kotlin.math.min
-import kotlin.math.pow
-import kotlin.math.sqrt
-
-
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -99,13 +92,11 @@ fun GameScreen(
     val levelConfig by viewModel.levelConfig.collectAsState()
     val gridConfig = viewModel.GridConfig
     val density = LocalDensity.current
-    // Top padding in DP for UI elements above the grid (if any)
     val topPaddingDp = 100.dp
 
     // Track current game index
     var currentGameIndex by remember { mutableIntStateOf(0) }
     val currentGame = levelConfig.games.getOrNull(currentGameIndex) ?: levelConfig.games.first()
-
 
     // Animation state
     var isPlaying by remember { mutableStateOf(false) }
@@ -114,11 +105,14 @@ fun GameScreen(
     var showError by remember { mutableStateOf(false) }
     var showSuccess by remember { mutableStateOf(false) }
 
-    // Get the correct sequence from the first path
-    val correctSequence = currentGame.paths.map { it.correctSequence }
+    // Get the correct sequence from correctPaths (flatten all paths)
+    val correctSequence = currentGame.correctPaths.flatMap { it.correctPath }
     val startingGridPosition = currentGame.paths.firstOrNull()?.startCell ?: IntOffset(0, 0)
+
     // Current position - this is the TARGET position for the turtle
-    var gridPosition by remember(levelConfig, currentGameIndex) { mutableStateOf(startingGridPosition) }
+    var gridPosition by remember(levelConfig, currentGameIndex) {
+        mutableStateOf(startingGridPosition)
+    }
 
     // Animate through paths sequentially
     LaunchedEffect(isPlaying, currentPathIndex) {
@@ -141,7 +135,8 @@ fun GameScreen(
                 delay(2000)
                 if (currentGameIndex < levelConfig.games.size - 1) {
                     currentGameIndex++
-                    gridPosition = levelConfig.games[currentGameIndex].paths.firstOrNull()?.startCell ?: IntOffset(0, 0)
+                    gridPosition = levelConfig.games[currentGameIndex].paths.firstOrNull()?.startCell
+                        ?: IntOffset(0, 0)
                 }
             } else {
                 currentPathIndex = nextIndex
@@ -160,7 +155,6 @@ fun GameScreen(
         val gridHeightPx = with(density) { availableHeight.toPx() }
 
         // Calculate cell size based on available space
-        // Use min() to ensure cells are PERFECT SQUARES that fit in available space
         val cellSizePx = remember(gridWidthPx, gridHeightPx) {
             val widthPerCell = gridWidthPx / gridConfig.cols
             val heightPerCell = gridHeightPx / gridConfig.rows
@@ -170,7 +164,7 @@ fun GameScreen(
         val gridTotalWidth = cellSizePx * gridConfig.cols
         val gridTotalHeight = cellSizePx * gridConfig.rows
 
-        // Center the grid horizontally
+        // Center the grid
         val gridOffsetXPx = (gridWidthPx - gridTotalWidth) / 2
         val gridOffsetYPx = (gridHeightPx - gridTotalHeight) / 2f
 
@@ -185,9 +179,8 @@ fun GameScreen(
         }
 
         val icon: Painter = painterResource(id = R.drawable.starfish)
-        TiledBackground(
-            tileBitmap = tileBitmap
-        )
+
+        TiledBackground(tileBitmap = tileBitmap)
 
         GridCanvas(
             gridConfig = gridConfig,
@@ -214,9 +207,8 @@ fun GameScreen(
                 .fillMaxSize()
                 .zIndex(10f)
         ) {
-
             GameControls(
-                paths = currentGame.paths,
+                numBoxes = currentGame.paths.size,
                 onPlayClicked = { sequence ->
                     // Validate the sequence
                     if (sequence.size == correctSequence.size &&
@@ -227,7 +219,7 @@ fun GameScreen(
                         currentPathIndex = 0
                         showError = false
                         showSuccess = false
-                        gridPosition = startingGridPosition // Reset to start
+                        gridPosition = startingGridPosition
                     } else {
                         // Wrong sequence
                         showError = true
@@ -242,15 +234,30 @@ fun GameScreen(
                     showError = false
                     showSuccess = false
                     gridPosition = startingGridPosition
+                },
+                onNextGameClicked = {
+                    if (currentGameIndex < levelConfig.games.size - 1) {
+                        currentGameIndex++
+                        gridPosition = levelConfig.games[currentGameIndex].paths.firstOrNull()?.startCell
+                            ?: IntOffset(0, 0)
+                        // Reset game state
+                        playerSequence = emptyList()
+                        isPlaying = false
+                        currentPathIndex = 0
+                        showError = false
+                        showSuccess = false
+                    } else {
+                        viewModel.nextLevel()
+                    }
                 }
             )
-
         }
+
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomCenter
         ) {
-            // Error message - top of the screen
+            // Error message
             AnimatedVisibility(
                 visible = showError,
                 enter = fadeIn(),
@@ -262,22 +269,20 @@ fun GameScreen(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
-                        .padding(top = 40.dp)
                         .background(
-                            color = Color(0xFFE53935), // deep red
+                            color = Color(0xFFE53935),
                             shape = RoundedCornerShape(12.dp)
                         )
                         .padding(horizontal = 20.dp, vertical = 12.dp)
                         .shadow(4.dp, RoundedCornerShape(12.dp))
                 )
-                // Auto-hide after 3 seconds
                 LaunchedEffect(showError) {
                     delay(3000)
                     showError = false
                 }
             }
 
-            // Success message - center overlay
+            // Success message
             AnimatedVisibility(
                 visible = showSuccess,
                 enter = fadeIn() + scaleIn(),
@@ -295,51 +300,54 @@ fun GameScreen(
                     fontWeight = FontWeight.ExtraBold,
                     modifier = Modifier
                         .background(
-                            color = Color(0xFF43A047), // deep green
+                            color = Color(0xFF43A047),
                             shape = RoundedCornerShape(16.dp)
                         )
                         .padding(horizontal = 24.dp, vertical = 16.dp)
                         .shadow(6.dp, RoundedCornerShape(16.dp))
                 )
-                // Auto-hide after 3 seconds
                 LaunchedEffect(showSuccess) {
                     delay(3000)
                     showSuccess = false
                 }
-                // Game progress indicator
-                Text(
-                    text = "Game ${currentGameIndex + 1}/${levelConfig.games.size}",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 16.dp)
-                        .background(
-                            color = Color.Black.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-
             }
+        }
+
+        // Game progress indicator
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.TopEnd
+        ) {
+            Text(
+                text = "Game ${currentGameIndex + 1}/${levelConfig.games.size}",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .background(
+                        color = Color.Black.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
         }
     }
 }
 
-
 @Composable
 fun GameControls(
-    paths: List<PathConfig>, // Pass all paths to know how many boxes and correct sequences
-    onPlayClicked: (List<Int>) -> Unit, // Callback with player's sequence
+    numBoxes: Int, // Number of drop boxes needed
+    onPlayClicked: (List<Int>) -> Unit,
+    onNextGameClicked: () -> Unit = {},
     onResetClicked: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    // Store a map of box index to direction (1=up, 2=down, 3=left, 4=right)
     var droppedArrows by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
 
-    // Reset dropped arrows when paths change (new game)
-    LaunchedEffect(paths) {
+    // Reset when game changes
+    LaunchedEffect(numBoxes) {
         droppedArrows = emptyMap()
     }
 
@@ -348,7 +356,6 @@ fun GameControls(
             .fillMaxSize()
             .padding(20.dp)
     ) {
-
         Row(modifier = Modifier.fillMaxWidth()) {
             // Drop zones
             Row(
@@ -356,14 +363,14 @@ fun GameControls(
                     .fillMaxWidth(0.5f)
                     .padding(8.dp)
             ) {
-                repeat(paths.size) { index ->
+                repeat(numBoxes) { index ->
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .size(80.dp)
                             .padding(10.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFf1d6bd))  // light blue-gray background
+                            .background(Color(0xFFf1d6bd))
                             .border(2.dp, Color(0xFF3F51B5), RoundedCornerShape(12.dp))
                             .dragAndDropTarget(
                                 shouldStartDragAndDrop = { event ->
@@ -374,22 +381,17 @@ fun GameControls(
                                 target = remember {
                                     object : DragAndDropTarget {
                                         override fun onDrop(event: DragAndDropEvent): Boolean {
-
-                                            // Extract the dropped arrow type from ClipData
                                             val item = event.toAndroidDragEvent().clipData.getItemAt(0)
                                             val droppedText = item.text.toString()
 
-                                            // Map arrow text to direction
                                             val direction = when (droppedText.lowercase()) {
-                                                "up" -> 1  // up
-                                                "down" -> 2  // down
-                                                "left" -> 3  // left
-                                                "right" -> 4  // right
+                                                "up" -> 1
+                                                "down" -> 2
+                                                "left" -> 3
+                                                "right" -> 4
                                                 else -> -1
                                             }
-                                            // Add this arrow to the map at this index
                                             droppedArrows = droppedArrows + (index to direction)
-
                                             return true
                                         }
                                     }
@@ -397,7 +399,6 @@ fun GameControls(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        // Check if this box has an arrow dropped in it
                         val arrowDirection = droppedArrows[index]
 
                         this@Row.AnimatedVisibility(
@@ -405,13 +406,12 @@ fun GameControls(
                             enter = scaleIn() + fadeIn(),
                             exit = scaleOut() + fadeOut()
                         ) {
-                            // Show the correct arrow based on what was dropped
                             val iconRes = when (arrowDirection) {
                                 1 -> R.drawable.up
                                 2 -> R.drawable.down
                                 3 -> R.drawable.left
                                 4 -> R.drawable.right
-                                else -> R.drawable.right // fallback
+                                else -> R.drawable.right
                             }
 
                             Icon(
@@ -425,6 +425,7 @@ fun GameControls(
                 }
             }
 
+            // Draggable arrows
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -436,7 +437,7 @@ fun GameControls(
                     modifier = Modifier
                         .size(64.dp)
                         .dragAndDropSource(
-                            transferData = { offset ->
+                            transferData = {
                                 DragAndDropTransferData(
                                     clipData = ClipData.newPlainText("arrow", "left")
                                 )
@@ -450,7 +451,7 @@ fun GameControls(
                     modifier = Modifier
                         .size(64.dp)
                         .dragAndDropSource(
-                            transferData = { offset ->
+                            transferData = {
                                 DragAndDropTransferData(
                                     clipData = ClipData.newPlainText("arrow", "up")
                                 )
@@ -464,7 +465,7 @@ fun GameControls(
                     modifier = Modifier
                         .size(64.dp)
                         .dragAndDropSource(
-                            transferData = { offset ->
+                            transferData = {
                                 DragAndDropTransferData(
                                     clipData = ClipData.newPlainText("arrow", "right")
                                 )
@@ -478,7 +479,7 @@ fun GameControls(
                     modifier = Modifier
                         .size(64.dp)
                         .dragAndDropSource(
-                            transferData = { offset ->
+                            transferData = {
                                 DragAndDropTransferData(
                                     clipData = ClipData.newPlainText("arrow", "down")
                                 )
@@ -488,25 +489,27 @@ fun GameControls(
                 )
             }
         }
-        Box(modifier=Modifier.fillMaxSize().padding(20.dp)) {
-            Row(modifier=Modifier
-                .fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically,  // Fixed
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(
-                    space = 8.dp,               // space between children
-                    alignment = Alignment.Start     // align all children to the end
+                    space = 8.dp,
+                    alignment = Alignment.Start
                 )
             ) {
                 // Exit Game
                 Button(
                     onClick = {
-                        // Convert map to ordered list
-                        val playerSequence = (0 until paths.size).mapNotNull { index ->
-                            droppedArrows[index]
-                        }
-                        onPlayClicked(playerSequence)
+                        // Exit button - you might want different logic here
+                        onNextGameClicked()
                     },
-                    contentPadding = PaddingValues(5.dp), // Remove default padding
+                    contentPadding = PaddingValues(5.dp),
                     modifier = Modifier
                         .size(48.dp)
                         .border(
@@ -515,27 +518,21 @@ fun GameControls(
                             shape = CircleShape
                         ),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3f51b5) // background color
+                        containerColor = Color(0xFF3f51b5)
                     ),
-
-                    ) {
+                ) {
                     Icon(
                         painter = painterResource(R.drawable.exit),
                         tint = Color(0xFFf1d6bd),
-                        contentDescription = "Play icon",
+                        contentDescription = "Exit icon",
                         modifier = Modifier.size(32.dp)
                     )
                 }
+
                 // Next Game
                 Button(
-                    onClick = {
-                        // Convert map to ordered list
-                        val playerSequence = (0 until paths.size).mapNotNull { index ->
-                            droppedArrows[index]
-                        }
-                        onPlayClicked(playerSequence)
-                    },
-                    contentPadding = PaddingValues(5.dp), // Remove default padding
+                    onClick = { onNextGameClicked() },
+                    contentPadding = PaddingValues(5.dp),
                     modifier = Modifier
                         .size(48.dp)
                         .border(
@@ -544,36 +541,35 @@ fun GameControls(
                             shape = CircleShape
                         ),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3f51b5) // background color
+                        containerColor = Color(0xFF3f51b5)
                     ),
-
-                    ) {
+                ) {
                     Icon(
                         painter = painterResource(R.drawable.pointing_right),
                         tint = Color(0xFFf1d6bd),
-                        contentDescription = "Play icon",
+                        contentDescription = "Next icon",
                         modifier = Modifier.size(32.dp)
                     )
                 }
             }
-            Row(modifier=Modifier
-                .fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically,  // Fixed
+
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(
-                    space = 8.dp,               // space between children
-                    alignment = Alignment.End     // align all children to the end
+                    space = 8.dp,
+                    alignment = Alignment.End
                 )
             ) {
                 // Play Button
                 Button(
                     onClick = {
-                        // Convert map to ordered list
-                        val playerSequence = (0 until paths.size).mapNotNull { index ->
+                        val playerSequence = (0 until numBoxes).mapNotNull { index ->
                             droppedArrows[index]
                         }
                         onPlayClicked(playerSequence)
                     },
-                    contentPadding = PaddingValues(5.dp), // Remove default padding
+                    contentPadding = PaddingValues(5.dp),
                     modifier = Modifier
                         .size(48.dp)
                         .border(
@@ -582,10 +578,9 @@ fun GameControls(
                             shape = CircleShape
                         ),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3f51b5) // background color
+                        containerColor = Color(0xFF3f51b5)
                     ),
-
-                    ) {
+                ) {
                     Icon(
                         painter = painterResource(R.drawable.play),
                         tint = Color(0xFFf1d6bd),
@@ -596,14 +591,8 @@ fun GameControls(
 
                 // Reset Game
                 Button(
-                    onClick = {
-                        // Convert map to ordered list
-                        val playerSequence = (0 until paths.size).mapNotNull { index ->
-                            droppedArrows[index]
-                        }
-                        onPlayClicked(playerSequence)
-                    },
-                    contentPadding = PaddingValues(5.dp), // Remove default padding
+                    onClick = { onResetClicked() },
+                    contentPadding = PaddingValues(5.dp),
                     modifier = Modifier
                         .size(48.dp)
                         .border(
@@ -612,14 +601,13 @@ fun GameControls(
                             shape = CircleShape
                         ),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3f51b5) // background color
+                        containerColor = Color(0xFF3f51b5)
                     ),
-
-                    ) {
+                ) {
                     Icon(
                         painter = painterResource(R.drawable.reset),
                         tint = Color(0xFFf1d6bd),
-                        contentDescription = "Play icon",
+                        contentDescription = "Reset icon",
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -627,7 +615,6 @@ fun GameControls(
         }
     }
 }
-
 
 @Composable
 fun GridCanvas(
@@ -638,18 +625,11 @@ fun GridCanvas(
     gridOffsetXPx: Float,
     gridOffsetYPx: Float
 ) {
-
     Canvas(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 100.dp)
     ) {
-        val cellSize = min(
-            size.width /gridConfig.cols,
-            size.height / gridConfig.rows
-        )
-
-        // Use draw scope translate so everything inside is relative to grid top-left
         translate(left = gridOffsetXPx, top = gridOffsetYPx) {
             val width = cellSizePx * gridConfig.cols
             val height = cellSizePx * gridConfig.rows
@@ -672,8 +652,6 @@ fun GridCanvas(
                 )
             }
 
-
-            // Helper: center of a cell (in grid local coordinates)
             fun cellCenterPx(cellX: Int, cellY: Int): Offset {
                 return Offset(
                     x = cellX * cellSizePx + cellSizePx / 2f,
@@ -683,16 +661,14 @@ fun GridCanvas(
 
             // Draw paths and stars
             paths.forEach { path ->
-                // Convert start/end cell -> center pixel positions (in grid-local coords)
                 val startCenter = cellCenterPx(path.startCell.x, path.startCell.y)
                 val endCenter = cellCenterPx(path.endCell.x, path.endCell.y)
 
-                // Determine steps (number of cells between start and end, inclusive)
                 val dxCells = path.endCell.x - path.startCell.x
                 val dyCells = path.endCell.y - path.startCell.y
                 val steps = maxOf(kotlin.math.abs(dxCells), kotlin.math.abs(dyCells))
+
                 if (steps == 0) {
-                    // single-cell path: draw a star at start
                     drawIntoCanvas { canvas ->
                         canvas.save()
                         canvas.translate(
@@ -705,15 +681,13 @@ fun GridCanvas(
                         canvas.restore()
                     }
                 } else {
-                    // step along the path using linear interpolation between centers
                     for (i in 0..steps) {
-                        val t = i.toFloat() / steps.toFloat() // 0..1
+                        val t = i.toFloat() / steps.toFloat()
                         val xPx = startCenter.x + (endCenter.x - startCenter.x) * t
                         val yPx = startCenter.y + (endCenter.y - startCenter.y) * t
 
                         drawIntoCanvas { canvas ->
                             canvas.save()
-                            // translate so star's top-left aligns properly (centered in cell)
                             canvas.translate(xPx - (cellSizePx * 0.5f), yPx - (cellSizePx * 0.5f))
                             with(starIcon) {
                                 draw(size = Size(cellSizePx, cellSizePx), alpha = 0.6f)
@@ -737,27 +711,15 @@ fun AnimatedTurtle(
     gridOffsetXPx: Float,
     gridOffsetYPx: Float
 ) {
-    // Convert cell size to Dp
     val turtleSizeDp = with(LocalDensity.current) { cellSizePx.toDp() }
     val turtleSizePx = cellSizePx
     val turtleHalf = turtleSizePx / 2f
 
-    // Determine the target position based on animation state
-    val targetGridPosition = if (isPlaying && currentPathIndex < paths.size) {
-        // Currently animating - move to end of current path
-        paths[currentPathIndex].endCell
-    } else {
-        // Not animating - stay at current position
-        gridPosition
-    }
-
-    // Calculate current center position in GRID-RELATED coordinates
     val targetPixelPos = Offset(
         x = gridOffsetXPx + gridPosition.x * cellSizePx + cellSizePx / 2f,
         y = gridOffsetYPx + gridPosition.y * cellSizePx + cellSizePx / 2f
     )
 
-    // Smooth animation for position
     val animatedOffset by animateIntOffsetAsState(
         targetValue = IntOffset(
             targetPixelPos.x.toInt(),
@@ -767,7 +729,6 @@ fun AnimatedTurtle(
         label = "turtle position"
     )
 
-    // Turtle continuous rotation
     val infinite = rememberInfiniteTransition()
     val rotation by infinite.animateFloat(
         initialValue = 0f,
@@ -778,9 +739,10 @@ fun AnimatedTurtle(
         label = "rotation"
     )
 
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .padding(top = 100.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 100.dp)
     ) {
         Icon(
             painter = painterResource(R.drawable.turtle),
@@ -788,7 +750,6 @@ fun AnimatedTurtle(
             modifier = Modifier
                 .size(turtleSizeDp)
                 .offset {
-                    // Convert center position to top-left
                     IntOffset(
                         animatedOffset.x - turtleHalf.toInt(),
                         animatedOffset.y - turtleHalf.toInt()
@@ -802,24 +763,21 @@ fun AnimatedTurtle(
 }
 
 @Composable
-fun TiledBackground(
-    tileBitmap: ImageBitmap
-) {
-    Canvas(modifier = Modifier
-        .fillMaxSize()
-        .padding(top = 100.dp)
+fun TiledBackground(tileBitmap: ImageBitmap) {
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 100.dp)
     ) {
         val tileW = tileBitmap.width.toFloat()
         val tileH = tileBitmap.height.toFloat()
-
         val spacingFactor = 1f
 
-        // Tile across width & height
         for (x in 0..(size.width / tileW).toInt()) {
             for (y in 0..(size.height / tileH).toInt()) {
                 drawImage(
                     image = tileBitmap,
-                    topLeft = Offset(x * tileW*spacingFactor, y * tileH*spacingFactor),
+                    topLeft = Offset(x * tileW * spacingFactor, y * tileH * spacingFactor),
                     colorFilter = ColorFilter.tint(Color(0xFF2096f3)),
                     alpha = 0.4f
                 )
@@ -827,8 +785,6 @@ fun TiledBackground(
         }
     }
 }
-
-
 
 @Preview(showBackground = true)
 @Composable
