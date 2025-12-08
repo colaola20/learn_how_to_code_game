@@ -45,9 +45,9 @@ object LevelConfigs {
                     // Game 1
                     GameSequence(
                         paths = listOf(
-                            PathConfig(IntOffset(1,5), IntOffset(6,5)),
+                            PathConfig(IntOffset(0,5), IntOffset(6,5)),
                             PathConfig(IntOffset(6,5), IntOffset(6,1)),
-                            PathConfig(IntOffset(6,1), IntOffset(9,1))
+                            PathConfig(IntOffset(6,1), IntOffset(12,1))
                         ),
                         correctPaths = listOf(
                             CorrectPath(listOf(4, 1, 4))

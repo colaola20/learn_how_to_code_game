@@ -131,18 +131,26 @@ fun GameScreen(
                 isPlaying = false
                 currentPathIndex = 0
                 showSuccess = true
-                // Move to next game after a delay
-                delay(2000)
-                if (currentGameIndex < levelConfig.games.size - 1) {
-                    currentGameIndex++
-                    gridPosition = levelConfig.games[currentGameIndex].paths.firstOrNull()?.startCell
-                        ?: IntOffset(0, 0)
-                }
             } else {
                 currentPathIndex = nextIndex
             }
         }
     }
+    // Handle success and game progression
+    LaunchedEffect(showSuccess) {
+        if (showSuccess) {
+            delay(2000)
+            showSuccess = false
+
+            if (currentGameIndex < levelConfig.games.size - 1) {
+                currentGameIndex++
+                playerSequence = emptyList()
+                gridPosition = levelConfig.games[currentGameIndex].paths.firstOrNull()?.startCell
+                    ?: IntOffset(0, 0)
+            }
+        }
+    }
+
 
     BoxWithConstraints(
         modifier = Modifier
@@ -306,10 +314,6 @@ fun GameScreen(
                         .padding(horizontal = 24.dp, vertical = 16.dp)
                         .shadow(6.dp, RoundedCornerShape(16.dp))
                 )
-                LaunchedEffect(showSuccess) {
-                    delay(3000)
-                    showSuccess = false
-                }
             }
         }
 
