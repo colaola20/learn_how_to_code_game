@@ -605,7 +605,10 @@ fun GameControls(
 
                 // Reset Game
                 Button(
-                    onClick = { onResetClicked() },
+                    onClick = {
+                        droppedArrows = emptyMap()
+                        onResetClicked()
+                              },
                     contentPadding = PaddingValues(5.dp),
                     modifier = Modifier
                         .size(48.dp)
