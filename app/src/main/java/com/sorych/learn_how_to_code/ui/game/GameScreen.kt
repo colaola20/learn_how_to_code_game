@@ -99,6 +99,12 @@ fun GameScreen(
     val currentLevel by remember { mutableStateOf(1) }
     val currentGame = levelConfig.games.getOrNull(currentGameIndex) ?: levelConfig.games.first()
 
+    val completedGames: MutableMap<Int, MutableList<Boolean>> =
+        (0 until levelConfig.games.size).associateWith {
+            MutableList(levelConfig.games.size) {false}
+        }.toMutableMap()
+
+
     // Animation state
     var isPlaying by remember { mutableStateOf(false) }
     var currentPathIndex by remember { mutableIntStateOf(0) }
@@ -157,6 +163,7 @@ fun GameScreen(
             }
             if (currentGameIndex == levelConfig.games.size - 1) {
                 viewModel.nextLevel()
+                currentGameIndex = 0
             }
         }
     }
@@ -226,6 +233,7 @@ fun GameScreen(
                 .zIndex(10f)
         ) {
             GameControls(
+                currentGameIndex = currentGameIndex,
                 numBoxes = currentGame.validSolutions.maxOf { it.directions.size },
                 onPlayClicked = { sequence ->
                     // Validate the sequence against all valid solutions
@@ -337,25 +345,44 @@ fun GameScreen(
                 .padding(16.dp),
             contentAlignment = Alignment.TopEnd
         ) {
-            Text(
-                text = "Game ${currentGameIndex + 1}/${levelConfig.games.size}",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .padding(top = 16.dp)
-                    .background(
-                        color = Color.Black.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                Text(
+                    text = "Level ${currentLevel}",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .background(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+                Text(
+                    text = "Game ${currentGameIndex + 1}/${levelConfig.games.size}",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .background(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
         }
     }
 }
 
 @Composable
 fun GameControls(
+    currentGameIndex: Int,
     numBoxes: Int,
     onPlayClicked: (List<Int>) -> Unit,
     onNextGameClicked: () -> Unit = {},
@@ -365,7 +392,7 @@ fun GameControls(
     var droppedArrows by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
 
     // Reset when game changes
-    LaunchedEffect(numBoxes) {
+    LaunchedEffect(currentGameIndex) {
         droppedArrows = emptyMap()
     }
 

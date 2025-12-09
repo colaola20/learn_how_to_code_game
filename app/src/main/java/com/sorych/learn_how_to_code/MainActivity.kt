@@ -23,8 +23,8 @@ class MainActivity : ComponentActivity() {
 //                ) {
 //                    NavClass()
 //                }
-                GameScreen()
 //            }
+            GameScreen()
         }
     }
 }
