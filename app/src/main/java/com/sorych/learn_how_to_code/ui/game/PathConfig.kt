@@ -211,3 +211,4 @@ fun GameSequence.isValidSolution(playerDirections: List<Int>): Solution? {
         solution.directions == playerDirections
     }
 }
+

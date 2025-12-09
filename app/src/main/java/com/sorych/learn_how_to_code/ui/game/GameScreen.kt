@@ -96,6 +96,7 @@ fun GameScreen(
 
     // Track current game index
     var currentGameIndex by remember { mutableIntStateOf(0) }
+    val currentLevel by remember { mutableStateOf(1) }
     val currentGame = levelConfig.games.getOrNull(currentGameIndex) ?: levelConfig.games.first()
 
     // Animation state
@@ -153,6 +154,9 @@ fun GameScreen(
                 playerSequence = emptyList()
                 activeSolution = null
                 gridPosition = levelConfig.games[currentGameIndex].startCell
+            }
+            if (currentGameIndex == levelConfig.games.size - 1) {
+                viewModel.nextLevel()
             }
         }
     }
