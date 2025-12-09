@@ -105,9 +105,11 @@ fun GameScreen(
     var showError by remember { mutableStateOf(false) }
     var showSuccess by remember { mutableStateOf(false) }
 
-    // Get the correct sequence from correctPaths (flatten all paths)
-    val correctSequence = currentGame.correctPaths.flatMap { it.correctPath }
-    val startingGridPosition = currentGame.paths.firstOrNull()?.startCell ?: IntOffset(0, 0)
+    // Get starting position
+    val startingGridPosition = currentGame.startCell
+
+    // Track which solution the player is following (for animation)
+    var activeSolution by remember { mutableStateOf<Solution?>(null) }
 
     // Current position - this is the TARGET position for the turtle
     var gridPosition by remember(levelConfig, currentGameIndex) {
@@ -116,9 +118,12 @@ fun GameScreen(
 
     // Animate through paths sequentially
     LaunchedEffect(isPlaying, currentPathIndex) {
-        if (isPlaying && currentPathIndex < currentGame.paths.size) {
+        if (isPlaying && activeSolution != null && currentPathIndex < activeSolution!!.pathIds.size) {
             delay(1000)
-            val currentPath = currentGame.paths[currentPathIndex]
+
+            // Get the paths for the active solution
+            val pathsToFollow = currentGame.getPathsByIds(activeSolution!!.pathIds)
+            val currentPath = pathsToFollow[currentPathIndex]
 
             // After animation, update position to end of current path
             gridPosition = currentPath.endCell
@@ -127,7 +132,7 @@ fun GameScreen(
             val nextIndex = currentPathIndex + 1
 
             // Check if all paths are complete
-            if (nextIndex >= currentGame.paths.size) {
+            if (nextIndex >= pathsToFollow.size) {
                 isPlaying = false
                 currentPathIndex = 0
                 showSuccess = true
@@ -136,6 +141,7 @@ fun GameScreen(
             }
         }
     }
+
     // Handle success and game progression
     LaunchedEffect(showSuccess) {
         if (showSuccess) {
@@ -145,12 +151,11 @@ fun GameScreen(
             if (currentGameIndex < levelConfig.games.size - 1) {
                 currentGameIndex++
                 playerSequence = emptyList()
-                gridPosition = levelConfig.games[currentGameIndex].paths.firstOrNull()?.startCell
-                    ?: IntOffset(0, 0)
+                activeSolution = null
+                gridPosition = levelConfig.games[currentGameIndex].startCell
             }
         }
     }
-
 
     BoxWithConstraints(
         modifier = Modifier
@@ -192,7 +197,7 @@ fun GameScreen(
 
         GridCanvas(
             gridConfig = gridConfig,
-            paths = currentGame.paths,
+            paths = currentGame.allPaths,
             starIcon = icon,
             cellSizePx = cellSizePx,
             gridOffsetXPx = gridOffsetXPx,
@@ -202,7 +207,8 @@ fun GameScreen(
         AnimatedTurtle(
             isPlaying = isPlaying,
             currentPathIndex = currentPathIndex,
-            paths = currentGame.paths,
+            paths = activeSolution?.let { currentGame.getPathsByIds(it.pathIds) }
+                ?: currentGame.allPaths,
             gridPosition = gridPosition,
             cellSizePx = cellSizePx,
             gridOffsetXPx = gridOffsetXPx,
@@ -216,13 +222,15 @@ fun GameScreen(
                 .zIndex(10f)
         ) {
             GameControls(
-                numBoxes = currentGame.paths.size,
+                numBoxes = currentGame.validSolutions.maxOf { it.directions.size },
                 onPlayClicked = { sequence ->
-                    // Validate the sequence
-                    if (sequence.size == correctSequence.size &&
-                        sequence == correctSequence) {
-                        // Correct! Start animation
+                    // Validate the sequence against all valid solutions
+                    val matchedSolution = currentGame.isValidSolution(sequence)
+
+                    if (matchedSolution != null) {
+                        // Correct! Start animation with the matched solution
                         playerSequence = sequence
+                        activeSolution = matchedSolution
                         isPlaying = true
                         currentPathIndex = 0
                         showError = false
@@ -237,6 +245,7 @@ fun GameScreen(
                 onResetClicked = {
                     // Reset current game
                     playerSequence = emptyList()
+                    activeSolution = null
                     isPlaying = false
                     currentPathIndex = 0
                     showError = false
@@ -246,10 +255,10 @@ fun GameScreen(
                 onNextGameClicked = {
                     if (currentGameIndex < levelConfig.games.size - 1) {
                         currentGameIndex++
-                        gridPosition = levelConfig.games[currentGameIndex].paths.firstOrNull()?.startCell
-                            ?: IntOffset(0, 0)
+                        gridPosition = levelConfig.games[currentGameIndex].startCell
                         // Reset game state
                         playerSequence = emptyList()
+                        activeSolution = null
                         isPlaying = false
                         currentPathIndex = 0
                         showError = false
@@ -330,6 +339,7 @@ fun GameScreen(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
+                    .padding(top = 16.dp)
                     .background(
                         color = Color.Black.copy(alpha = 0.5f),
                         shape = RoundedCornerShape(8.dp)
@@ -342,7 +352,7 @@ fun GameScreen(
 
 @Composable
 fun GameControls(
-    numBoxes: Int, // Number of drop boxes needed
+    numBoxes: Int,
     onPlayClicked: (List<Int>) -> Unit,
     onNextGameClicked: () -> Unit = {},
     onResetClicked: () -> Unit = {},
