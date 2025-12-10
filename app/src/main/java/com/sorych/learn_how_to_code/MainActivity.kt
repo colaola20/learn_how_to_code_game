@@ -17,14 +17,14 @@ class MainActivity : ComponentActivity() {
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         enableEdgeToEdge()
         setContent {
-//            Learn_how_to_codeTheme {
-//                Surface(
-//                    modifier = Modifier.fillMaxSize()
-//                ) {
-//                    NavClass()
-//                }
-//            }
-            GameScreen()
+            Learn_how_to_codeTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    NavClass()
+                }
+            }
+//            GameScreen()
         }
     }
 }

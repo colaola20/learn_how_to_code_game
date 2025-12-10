@@ -67,7 +67,7 @@ class GameViewModel(
         }
     }
 
-    private fun generateLevelWithGPT(levelNumber: Int) {
+     fun generateLevelWithGPT(levelNumber: Int) {
         viewModelScope.launch {
             try {
                 _isGeneratingLevel.value = true

@@ -84,6 +84,7 @@ import com.sorych.learn_how_to_code.R
 import com.sorych.learn_how_to_code.ui.theme.Learn_how_to_codeTheme
 import kotlinx.coroutines.delay
 import kotlin.math.min
+import kotlin.random.Random
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
@@ -609,14 +610,6 @@ fun GameControls(
                         ),
                     tint = Color.Unspecified
                 )
-                Button(
-                    onClick = {
-                        // Assuming you pass viewModel to GameControls
-                        viewModel.nextLevel()
-                    }
-                ) {
-                    Text("Test Generate Level")
-                }
             }
         }
 
@@ -630,31 +623,62 @@ fun GameControls(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.Start
             ) {
-                // Exit Game
-                Button(
-                    onClick = {
-                        // Exit button - you might want different logic here
-                        onNextGameClicked()
-                    },
-                    contentPadding = PaddingValues(5.dp),
-                    modifier = Modifier
-                        .size(48.dp)
-                        .border(
-                            width = 2.dp,
-                            color = Color(0xFF3f51b5),
-                            shape = CircleShape
+                Row(modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(
+                        space = 8.dp
+                    )){
+                    // Exit Game
+                    Button(
+                        onClick = {
+                            // Exit button - you might want different logic here
+                            onNextGameClicked()
+                        },
+                        contentPadding = PaddingValues(5.dp),
+                        modifier = Modifier
+                            .size(48.dp)
+                            .border(
+                                width = 2.dp,
+                                color = Color(0xFF3f51b5),
+                                shape = CircleShape
+                            ),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF3f51b5)
                         ),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3f51b5)
-                    ),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.exit),
-                        tint = Color(0xFFf1d6bd),
-                        contentDescription = "Exit icon",
-                        modifier = Modifier.size(32.dp)
-                    )
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.exit),
+                            tint = Color(0xFFf1d6bd),
+                            contentDescription = "Exit icon",
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            val random = Random.nextInt(0, 13) // 0 to 12 inclusive
+                            // Assuming you pass viewModel to GameControls
+                            viewModel.generateLevelWithGPT(random)
+                        },
+                        contentPadding = PaddingValues(5.dp),
+                        modifier = Modifier
+                            .size(48.dp)
+                            .border(
+                                width = 2.dp,
+                                color = Color(0xFF3f51b5),
+                                shape = CircleShape
+                            ),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF3f51b5)
+                        ),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ai_svgrepo_com),
+                            tint = Color(0xFFf1d6bd),
+                            contentDescription = "Exit icon",
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                 }
+
                 Row(
                     modifier = Modifier.padding(top = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(
