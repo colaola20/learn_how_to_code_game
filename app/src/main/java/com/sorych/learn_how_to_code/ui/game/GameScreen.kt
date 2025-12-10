@@ -99,11 +99,8 @@ fun GameScreen(
     val currentLevel by remember { mutableStateOf(1) }
     val currentGame = levelConfig.games.getOrNull(currentGameIndex) ?: levelConfig.games.first()
 
-    val completedGames: MutableMap<Int, MutableList<Boolean>> =
-        (0 until levelConfig.games.size).associateWith {
-            MutableList(levelConfig.games.size) {false}
-        }.toMutableMap()
-
+    val completedGames: MutableMap<Int, MutableList<Boolean>> = mutableMapOf()
+    completedGames[currentLevel] = MutableList(levelConfig.games.size) {false}
 
     // Animation state
     var isPlaying by remember { mutableStateOf(false) }
@@ -151,6 +148,7 @@ fun GameScreen(
 
     // Handle success and game progression
     LaunchedEffect(showSuccess) {
+        completedGames[currentLevel]?.set(currentGameIndex, true)
         if (showSuccess) {
             delay(2000)
             showSuccess = false
@@ -162,8 +160,10 @@ fun GameScreen(
                 gridPosition = levelConfig.games[currentGameIndex].startCell
             }
             if (currentGameIndex == levelConfig.games.size - 1) {
-                viewModel.nextLevel()
-                currentGameIndex = 0
+                if (completedGames[currentLevel]?.all { it } == true) {
+                    viewModel.nextLevel()
+                    currentGameIndex = 0
+                }
             }
         }
     }
@@ -264,6 +264,19 @@ fun GameScreen(
                     showSuccess = false
                     gridPosition = startingGridPosition
                 },
+                onPrevGameClicked = {
+                    if (currentGameIndex >= 1) {
+                        currentGameIndex--
+                        gridPosition = levelConfig.games[currentGameIndex].startCell
+                        // Reset game state
+                        playerSequence = emptyList()
+                        activeSolution = null
+                        isPlaying = false
+                        currentPathIndex = 0
+                        showError = false
+                        showSuccess = false
+                    }
+                },
                 onNextGameClicked = {
                     if (currentGameIndex < levelConfig.games.size - 1) {
                         currentGameIndex++
@@ -276,7 +289,12 @@ fun GameScreen(
                         showError = false
                         showSuccess = false
                     } else {
-                        viewModel.nextLevel()
+                        if (currentGameIndex == levelConfig.games.size - 1) {
+                            if (completedGames[currentLevel]?.all { it } == true) {
+                                viewModel.nextLevel()
+                                currentGameIndex = 0
+                            }
+                        }
                     }
                 }
             )
@@ -385,6 +403,7 @@ fun GameControls(
     currentGameIndex: Int,
     numBoxes: Int,
     onPlayClicked: (List<Int>) -> Unit,
+    onPrevGameClicked: () -> Unit = {},
     onNextGameClicked: () -> Unit = {},
     onResetClicked: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -540,13 +559,10 @@ fun GameControls(
                 .fillMaxSize()
                 .padding(20.dp)
         ) {
-            Row(
+            Column(
                 modifier = Modifier.fillMaxSize(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(
-                    space = 8.dp,
-                    alignment = Alignment.Start
-                )
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.Start
             ) {
                 // Exit Game
                 Button(
@@ -573,30 +589,59 @@ fun GameControls(
                         modifier = Modifier.size(32.dp)
                     )
                 }
-
-                // Next Game
-                Button(
-                    onClick = { onNextGameClicked() },
-                    contentPadding = PaddingValues(5.dp),
-                    modifier = Modifier
-                        .size(48.dp)
-                        .border(
-                            width = 2.dp,
-                            color = Color(0xFF3f51b5),
-                            shape = CircleShape
-                        ),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF3f51b5)
-                    ),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.pointing_right),
-                        tint = Color(0xFFf1d6bd),
-                        contentDescription = "Next icon",
-                        modifier = Modifier.size(32.dp)
+                Row(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(
+                        space = 8.dp
                     )
+                    ) {
+                    // Prev Game
+                    Button(
+                        onClick = { onPrevGameClicked() },
+                        contentPadding = PaddingValues(5.dp),
+                        modifier = Modifier
+                            .size(48.dp)
+                            .border(
+                                width = 2.dp,
+                                color = Color(0xFF3f51b5),
+                                shape = CircleShape
+                            ),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF3f51b5)
+                        ),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.pointing_left1),
+                            tint = Color(0xFFf1d6bd),
+                            contentDescription = "Next icon",
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                    // Next Game
+                    Button(
+                        onClick = { onNextGameClicked() },
+                        contentPadding = PaddingValues(5.dp),
+                        modifier = Modifier
+                            .size(48.dp)
+                            .border(
+                                width = 2.dp,
+                                color = Color(0xFF3f51b5),
+                                shape = CircleShape
+                            ),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF3f51b5)
+                        ),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.pointing_right),
+                            tint = Color(0xFFf1d6bd),
+                            contentDescription = "Next icon",
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
                 }
             }
+
 
             Row(
                 modifier = Modifier.fillMaxSize(),
