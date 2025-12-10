@@ -34,6 +34,7 @@ class GameViewModel: ViewModel() {
     fun nextLevel() {
         loadLevel(_currentLevel.value + 1)
     }
+
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

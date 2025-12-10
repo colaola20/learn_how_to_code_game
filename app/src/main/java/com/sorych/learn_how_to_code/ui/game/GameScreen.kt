@@ -96,10 +96,14 @@ fun GameScreen(
 
     // Track current game index
     var currentGameIndex by remember { mutableIntStateOf(0) }
-    val currentLevel by remember { mutableStateOf(1) }
+    val currentLevel by viewModel.currentLevel.collectAsState()
     val currentGame = levelConfig.games.getOrNull(currentGameIndex) ?: levelConfig.games.first()
 
-    val completedGames: MutableMap<Int, MutableList<Boolean>> = mutableMapOf()
+    val completedGames = remember(currentLevel) {
+        mutableMapOf<Int, MutableList<Boolean>>().apply {
+            this[currentLevel] = MutableList(levelConfig.games.size) { false }
+        }
+    }
     completedGames[currentLevel] = MutableList(levelConfig.games.size) {false}
 
     // Animation state
@@ -148,23 +152,26 @@ fun GameScreen(
 
     // Handle success and game progression
     LaunchedEffect(showSuccess) {
-        completedGames[currentLevel]?.set(currentGameIndex, true)
         if (showSuccess) {
+            completedGames[currentLevel]?.set(currentGameIndex, true)
             delay(2000)
             showSuccess = false
 
-            if (currentGameIndex < levelConfig.games.size - 1) {
+            if (completedGames[currentLevel]?.all { it } == true) {
+                viewModel.nextLevel()
+                delay(100) // Small delay to ensure state updates
+                currentGameIndex = 0
+
+                // Initialize new level
+                completedGames[currentLevel] = MutableList(levelConfig.games.size) { false }
+            } else if (currentGameIndex < levelConfig.games.size - 1) {
                 currentGameIndex++
-                playerSequence = emptyList()
-                activeSolution = null
-                gridPosition = levelConfig.games[currentGameIndex].startCell
             }
-            if (currentGameIndex == levelConfig.games.size - 1) {
-                if (completedGames[currentLevel]?.all { it } == true) {
-                    viewModel.nextLevel()
-                    currentGameIndex = 0
-                }
-            }
+
+            // Reset game state
+            playerSequence = emptyList()
+            activeSolution = null
+            gridPosition = levelConfig.games[currentGameIndex].startCell
         }
     }
 
@@ -233,6 +240,7 @@ fun GameScreen(
                 .zIndex(10f)
         ) {
             GameControls(
+                currentLevel = currentLevel,
                 currentGameIndex = currentGameIndex,
                 numBoxes = currentGame.validSolutions.maxOf { it.directions.size },
                 onPlayClicked = { sequence ->
@@ -400,6 +408,7 @@ fun GameScreen(
 
 @Composable
 fun GameControls(
+    currentLevel: Int,
     currentGameIndex: Int,
     numBoxes: Int,
     onPlayClicked: (List<Int>) -> Unit,
@@ -411,7 +420,7 @@ fun GameControls(
     var droppedArrows by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
 
     // Reset when game changes
-    LaunchedEffect(currentGameIndex) {
+    LaunchedEffect(currentGameIndex, currentLevel) {
         droppedArrows = emptyMap()
     }
 
