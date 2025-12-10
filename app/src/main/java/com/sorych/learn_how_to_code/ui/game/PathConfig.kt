@@ -66,48 +66,48 @@ object LevelConfigs {
                         )
                     ),
 
-                    // Game 2: 5 steps
-                    GameSequence(
-                        startCell = IntOffset(0, 0),
-                        allPaths = listOf(
-                            // First iteration
-                            PathConfig(IntOffset(0,0), IntOffset(2,0), "p1"),
-                            PathConfig(IntOffset(2,0), IntOffset(2,6), "p2"),
-                            PathConfig(IntOffset(2,6), IntOffset(10,6), "p3"),
-                            PathConfig(IntOffset(10,6), IntOffset(10,0), "p4"),
-                            PathConfig(IntOffset(10,0), IntOffset(12,0), "p5"),
-                        ),
-                        validSolutions = listOf(
-                            Solution(
-                                // 1=up, 2=down, 3=left, 4=right
-                                // Pattern: right, down (repeated 3 times), then right
-                                directions = listOf(4, 2, 4, 1, 4),
-                                pathIds = listOf("p1", "p2", "p3", "p4", "p5"),
-                                description = "simple 5 step"
-                            )
-                        )
-                    ),
-
-                    // Game 3: Zigzag pattern (7 steps)
-                    GameSequence(
-                        startCell = IntOffset(0, 0),
-                        allPaths = listOf(
-                            PathConfig(IntOffset(0,0), IntOffset(3,0), "p1"),
-                            PathConfig(IntOffset(3,0), IntOffset(3,2), "p2"),
-                            PathConfig(IntOffset(3,2), IntOffset(6,2), "p3"),
-                            PathConfig(IntOffset(6,2), IntOffset(6,4), "p4"),
-                            PathConfig(IntOffset(6,4), IntOffset(9,4), "p5"),
-                            PathConfig(IntOffset(9,4), IntOffset(9,6), "p6"),
-                            PathConfig(IntOffset(9,6), IntOffset(12,6), "p7")
-                        ),
-                        validSolutions = listOf(
-                            Solution(
-                                directions = listOf(4, 2, 4, 2, 4, 2, 4),
-                                pathIds = listOf("p1", "p2", "p3", "p4", "p5", "p6", "p7"),
-                                description = "Zigzag path"
-                            )
-                        )
-                    )
+//                    // Game 2: 5 steps
+//                    GameSequence(
+//                        startCell = IntOffset(0, 0),
+//                        allPaths = listOf(
+//                            // First iteration
+//                            PathConfig(IntOffset(0,0), IntOffset(2,0), "p1"),
+//                            PathConfig(IntOffset(2,0), IntOffset(2,6), "p2"),
+//                            PathConfig(IntOffset(2,6), IntOffset(10,6), "p3"),
+//                            PathConfig(IntOffset(10,6), IntOffset(10,0), "p4"),
+//                            PathConfig(IntOffset(10,0), IntOffset(12,0), "p5"),
+//                        ),
+//                        validSolutions = listOf(
+//                            Solution(
+//                                // 1=up, 2=down, 3=left, 4=right
+//                                // Pattern: right, down (repeated 3 times), then right
+//                                directions = listOf(4, 2, 4, 1, 4),
+//                                pathIds = listOf("p1", "p2", "p3", "p4", "p5"),
+//                                description = "simple 5 step"
+//                            )
+//                        )
+//                    ),
+//
+//                    // Game 3: Zigzag pattern (7 steps)
+//                    GameSequence(
+//                        startCell = IntOffset(0, 0),
+//                        allPaths = listOf(
+//                            PathConfig(IntOffset(0,0), IntOffset(3,0), "p1"),
+//                            PathConfig(IntOffset(3,0), IntOffset(3,2), "p2"),
+//                            PathConfig(IntOffset(3,2), IntOffset(6,2), "p3"),
+//                            PathConfig(IntOffset(6,2), IntOffset(6,4), "p4"),
+//                            PathConfig(IntOffset(6,4), IntOffset(9,4), "p5"),
+//                            PathConfig(IntOffset(9,4), IntOffset(9,6), "p6"),
+//                            PathConfig(IntOffset(9,6), IntOffset(12,6), "p7")
+//                        ),
+//                        validSolutions = listOf(
+//                            Solution(
+//                                directions = listOf(4, 2, 4, 2, 4, 2, 4),
+//                                pathIds = listOf("p1", "p2", "p3", "p4", "p5", "p6", "p7"),
+//                                description = "Zigzag path"
+//                            )
+//                        )
+//                    )
                 ),
                 backgroundColor = Color(0xFF82d4fa),
                 backgroundTile = R.drawable.sea_waves2

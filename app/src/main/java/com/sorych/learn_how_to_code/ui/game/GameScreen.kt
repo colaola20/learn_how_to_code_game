@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -70,6 +71,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -92,7 +94,6 @@ fun GameScreen(
     val levelConfig by viewModel.levelConfig.collectAsState()
     val gridConfig = viewModel.GridConfig
     val density = LocalDensity.current
-    val topPaddingDp = 100.dp
 
     // Track current game index
     var currentGameIndex by remember { mutableIntStateOf(0) }
@@ -180,8 +181,12 @@ fun GameScreen(
             .fillMaxSize()
             .background(levelConfig.backgroundColor)
     ) {
-        val availableWidth = maxWidth
-        val availableHeight = maxHeight - topPaddingDp
+
+        val horizontalPaddingDp = maxWidth * 0.12f // 10% of screen width
+        val topPaddingDp = maxHeight * 0.21f // 10% of screen height
+
+        val availableWidth = maxWidth -  (horizontalPaddingDp * 2f)
+        val availableHeight = maxHeight -  topPaddingDp
         val gridWidthPx = with(density) { availableWidth.toPx() }
         val gridHeightPx = with(density) { availableHeight.toPx() }
 
@@ -214,6 +219,8 @@ fun GameScreen(
         TiledBackground(tileBitmap = tileBitmap)
 
         GridCanvas(
+            topPaddingDp = topPaddingDp,
+            horizontalPaddingDp = horizontalPaddingDp,
             gridConfig = gridConfig,
             paths = currentGame.allPaths,
             starIcon = icon,
@@ -223,6 +230,8 @@ fun GameScreen(
         )
 
         AnimatedTurtle(
+            topPaddingDp = topPaddingDp,
+            horizontalPaddingDp = horizontalPaddingDp,
             isPlaying = isPlaying,
             currentPathIndex = currentPathIndex,
             paths = activeSolution?.let { currentGame.getPathsByIds(it.pathIds) }
@@ -427,7 +436,7 @@ fun GameControls(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp)
+            .padding(10.dp)
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
             // Drop zones
@@ -720,6 +729,8 @@ fun GameControls(
 
 @Composable
 fun GridCanvas(
+    topPaddingDp: Dp,
+    horizontalPaddingDp: Dp,
     gridConfig: GridConfig,
     paths: List<PathConfig>,
     starIcon: Painter,
@@ -730,7 +741,11 @@ fun GridCanvas(
     Canvas(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 100.dp)
+            .padding(
+                top = topPaddingDp,
+                start = horizontalPaddingDp,
+                end = horizontalPaddingDp
+            )
     ) {
         translate(left = gridOffsetXPx, top = gridOffsetYPx) {
             val width = cellSizePx * gridConfig.cols
@@ -805,6 +820,8 @@ fun GridCanvas(
 
 @Composable
 fun AnimatedTurtle(
+    topPaddingDp: Dp,
+    horizontalPaddingDp: Dp,
     isPlaying: Boolean,
     currentPathIndex: Int,
     paths: List<PathConfig>,
@@ -844,7 +861,11 @@ fun AnimatedTurtle(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 100.dp)
+            .padding(
+                top = topPaddingDp,
+                start = horizontalPaddingDp,
+                end = horizontalPaddingDp
+            )
     ) {
         Icon(
             painter = painterResource(R.drawable.turtle),
