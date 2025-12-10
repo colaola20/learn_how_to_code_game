@@ -37,6 +37,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -77,6 +78,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.core.graphics.drawable.toBitmap
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sorych.learn_how_to_code.R
 import com.sorych.learn_how_to_code.ui.theme.Learn_how_to_codeTheme
@@ -91,8 +93,44 @@ fun GameScreen(
     )
 ) {
     val context = LocalContext.current
-    val levelConfig by viewModel.levelConfig.collectAsState()
-    val gridConfig = viewModel.GridConfig
+    val levelConfigU by viewModel.levelConfig.collectAsState()
+    val isGeneratingLevel by viewModel.isGeneratingLevel.collectAsState()
+
+    // Show loading screen while generating new level
+    if (isGeneratingLevel) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                CircularProgressIndicator()
+                Text(
+                    text = "Generating new level...",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        return
+    }
+
+    // Handle null case - show loading or error
+    if (levelConfigU == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Loading level...")
+        }
+        return
+    }
+
+    // Safe to use levelConfig!! here since we checked above
+    val levelConfig = levelConfigU!!
+    val gridConfig = viewModel.gridConfig
     val density = LocalDensity.current
 
     // Track current game index
@@ -249,6 +287,7 @@ fun GameScreen(
                 .zIndex(10f)
         ) {
             GameControls(
+                viewModel = viewModel,
                 currentLevel = currentLevel,
                 currentGameIndex = currentGameIndex,
                 numBoxes = currentGame.validSolutions.maxOf { it.directions.size },
@@ -417,6 +456,7 @@ fun GameScreen(
 
 @Composable
 fun GameControls(
+    viewModel: GameViewModel,
     currentLevel: Int,
     currentGameIndex: Int,
     numBoxes: Int,
@@ -569,6 +609,14 @@ fun GameControls(
                         ),
                     tint = Color.Unspecified
                 )
+                Button(
+                    onClick = {
+                        // Assuming you pass viewModel to GameControls
+                        viewModel.nextLevel()
+                    }
+                ) {
+                    Text("Test Generate Level")
+                }
             }
         }
 

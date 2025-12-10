@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,6 +7,13 @@ plugins {
 
     id("org.jetbrains.kotlin.plugin.serialization")
     alias(libs.plugins.google.gms.google.services)
+}
+
+// Load local.properties
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
 }
 
 android {
@@ -18,8 +27,16 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        // Add BuildConfig field for API key
+        buildConfigField(
+            "String",
+            "OPENAI_API_KEY",
+            "\"${localProperties.getProperty("OPENAI_API_KEY", "")}\""
+        )
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
 
     buildTypes {
         release {
@@ -39,6 +56,8 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true  // Enable BuildConfig
+
     }
 }
 
@@ -69,6 +88,16 @@ dependencies {
     // Add these for App Check (no version needed - managed by BoM)
     implementation("com.google.firebase:firebase-appcheck-debug")
     implementation("com.google.firebase:firebase-appcheck")
+
+    // For network calls
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")   // Gson for JSON parsing
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
