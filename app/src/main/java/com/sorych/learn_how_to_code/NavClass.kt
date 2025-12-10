@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.sorych.learn_how_to_code.ui.registration.RegisterScreen
+import com.sorych.learn_how_to_code.ui.start.StartGameScreen
 import kotlinx.serialization.Serializable
 
 
@@ -19,6 +20,9 @@ sealed class Routes {
 
     @Serializable
     data object Game : Routes()
+
+    @Serializable
+    data object Start : Routes()
 }
 
 @Composable
@@ -32,7 +36,7 @@ fun NavClass() {
         composable<Routes.Login> {
             LoginScreen(
                 onLoginSuccess = {
-                    navController.navigate(Routes.Game) {
+                    navController.navigate(Routes.Start) {
                         popUpTo(Routes.Login) {inclusive = true}
                     }
                 },
@@ -41,9 +45,25 @@ fun NavClass() {
                 }
             )
         }
+
+        composable<Routes.Start> {
+            StartGameScreen(
+                onStartClick = {
+                    navController.navigate(Routes.Game) {
+                        popUpTo(Routes.Start) {inclusive = true}
+                    }
+                }
+            )
+        }
         // You will also need to define your other destinations
         composable<Routes.Game> {
-            GameScreen()
+            GameScreen(
+                onExitClicked = {
+                    navController.navigate(Routes.Start) {
+                        popUpTo(Routes.Game) {inclusive = true}
+                    }
+                }
+            )
         }
         composable<Routes.Registration> {
             RegisterScreen(

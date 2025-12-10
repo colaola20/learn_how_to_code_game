@@ -91,7 +91,8 @@ import kotlin.random.Random
 fun GameScreen(
     viewModel: GameViewModel = viewModel(
         factory = GameViewModel.Factory
-    )
+    ),
+    onExitClicked: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val levelConfigU by viewModel.levelConfig.collectAsState()
@@ -353,6 +354,9 @@ fun GameScreen(
                             }
                         }
                     }
+                },
+                onExitClicked = {
+                    onExitClicked()
                 }
             )
         }
@@ -465,6 +469,7 @@ fun GameControls(
     onPrevGameClicked: () -> Unit = {},
     onNextGameClicked: () -> Unit = {},
     onResetClicked: () -> Unit = {},
+    onExitClicked: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var droppedArrows by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
@@ -631,7 +636,7 @@ fun GameControls(
                     Button(
                         onClick = {
                             // Exit button - you might want different logic here
-                            onNextGameClicked()
+                            onExitClicked()
                         },
                         contentPadding = PaddingValues(5.dp),
                         modifier = Modifier
@@ -654,7 +659,7 @@ fun GameControls(
                     }
                     Button(
                         onClick = {
-                            val random = Random.nextInt(0, 13) // 0 to 12 inclusive
+                            val random = Random.nextInt(0, 100) // 0 to 12 inclusive
                             // Assuming you pass viewModel to GameControls
                             viewModel.generateLevelWithGPT(random)
                         },

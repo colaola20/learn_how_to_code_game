@@ -9,6 +9,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.sorych.learn_how_to_code.ui.start.StartGameScreen
 import com.sorych.learn_how_to_code.ui.theme.Learn_how_to_codeTheme
 
 class MainActivity : ComponentActivity() {
@@ -25,6 +26,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 //            GameScreen()
+//              StartGameScreen()
         }
     }
 }
