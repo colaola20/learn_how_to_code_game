@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipDescription
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
@@ -43,10 +44,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,6 +84,9 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sorych.learn_how_to_code.R
+import com.sorych.learn_how_to_code.TurtleTailAppClass
+import com.sorych.learn_how_to_code.data.GameProgress
+import com.sorych.learn_how_to_code.data.UserProgressRepository
 import com.sorych.learn_how_to_code.ui.theme.Learn_how_to_codeTheme
 import kotlinx.coroutines.delay
 import kotlin.math.min
@@ -89,12 +95,17 @@ import kotlin.random.Random
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun GameScreen(
-    viewModel: GameViewModel = viewModel(
-        factory = GameViewModel.Factory
-    ),
+    viewModel: GameViewModel,
     onExitClicked: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val app = context.applicationContext as TurtleTailAppClass
+    val appProgress = app.userProgressRepository
+
+    val coroutineScope = rememberCoroutineScope()
+
+    val progress by viewModel.gameProgress.collectAsState()
+
     val levelConfigU by viewModel.levelConfig.collectAsState()
     val isGeneratingLevel by viewModel.isGeneratingLevel.collectAsState()
 
@@ -136,16 +147,25 @@ fun GameScreen(
     val density = LocalDensity.current
 
     // Track current game index
+    // Track current game index
     var currentGameIndex by remember { mutableIntStateOf(0) }
-    val currentLevel by viewModel.currentLevel.collectAsState()
+    val currentLevel = levelConfig.levelNumber
+
     val currentGame = levelConfig.games.getOrNull(currentGameIndex) ?: levelConfig.games.first()
 
-    val completedGames = remember(currentLevel) {
-        mutableMapOf<Int, MutableList<Boolean>>().apply {
-            this[currentLevel] = MutableList(levelConfig.games.size) { false }
-        }
+
+//    val completedGames = remember(currentLevel) {
+//        mutableMapOf<Int, MutableList<Boolean>>().apply {
+//            this[currentLevel] = MutableList(levelConfig.games.size) { false }
+//        }
+//    }
+
+//    completedGames[currentLevel] = MutableList(levelConfig.games.size) {false}
+
+    val completedGames = remember {
+        mutableMapOf<Int, MutableList<Boolean>>()
     }
-    completedGames[currentLevel] = MutableList(levelConfig.games.size) {false}
+
 
     // Animation state
     var isPlaying by remember { mutableStateOf(false) }
@@ -165,9 +185,17 @@ fun GameScreen(
         mutableStateOf(startingGridPosition)
     }
 
+    // Reset completedGames when level changes
+    LaunchedEffect(levelConfig.levelNumber) {
+        completedGames[levelConfig.levelNumber] = MutableList(levelConfig.games.size) { false }
+        currentGameIndex = 0
+        Log.d("GameScreen", "Level changed to ${levelConfig.levelNumber}, reset game state")
+    }
+
     // Animate through paths sequentially
     LaunchedEffect(isPlaying, currentPathIndex) {
         if (isPlaying && activeSolution != null && currentPathIndex < activeSolution!!.pathIds.size) {
+            Log.d("GameScreen", "🎬 Animating path $currentPathIndex of ${activeSolution!!.pathIds.size}")
             delay(1000)
 
             // Get the paths for the active solution
@@ -182,6 +210,7 @@ fun GameScreen(
 
             // Check if all paths are complete
             if (nextIndex >= pathsToFollow.size) {
+                Log.d("GameScreen", "🏁 Animation complete! Setting showSuccess = true")
                 isPlaying = false
                 currentPathIndex = 0
                 showSuccess = true
@@ -193,25 +222,35 @@ fun GameScreen(
 
     // Handle success and game progression
     LaunchedEffect(showSuccess) {
+        Log.d("GameScreen", "🔔 LaunchedEffect triggered - showSuccess: $showSuccess")
         if (showSuccess) {
+            Log.d("GameScreen", "🎉 SUCCESS HANDLER RUNNING")
             completedGames[currentLevel]?.set(currentGameIndex, true)
             delay(2000)
             showSuccess = false
 
             if (completedGames[currentLevel]?.all { it } == true) {
+                Log.d("GameScreen", "🎉 All games completed in level $currentLevel")
+                viewModel.completeLevel()
                 viewModel.nextLevel()
                 delay(100) // Small delay to ensure state updates
                 currentGameIndex = 0
 
-                // Initialize new level
-                completedGames[currentLevel] = MutableList(levelConfig.games.size) { false }
+                // Initialize completed games for the NEW level
+                val newLevel = viewModel.currentLevel
+                completedGames[newLevel] = MutableList(levelConfig.games.size) { false }
+                Log.d("GameScreen", "Initialized completedGames for level $newLevel")
             } else if (currentGameIndex < levelConfig.games.size - 1) {
+                Log.d("GameScreen", "✅ Game $currentGameIndex completed")
+                viewModel.completeGame()
                 currentGameIndex++
             }
 
             // Reset game state
             playerSequence = emptyList()
             activeSolution = null
+
+            val nextGame = levelConfig.games.getOrNull(currentGameIndex) ?: levelConfig.games.first()
             gridPosition = levelConfig.games[currentGameIndex].startCell
         }
     }
@@ -294,10 +333,15 @@ fun GameScreen(
                 currentGameIndex = currentGameIndex,
                 numBoxes = currentGame.validSolutions.maxOf { it.directions.size },
                 onPlayClicked = { sequence ->
+                    Log.d("GameScreen", "🎮 Player sequence: $sequence")
                     // Validate the sequence against all valid solutions
                     val matchedSolution = currentGame.isValidSolution(sequence)
 
+                    Log.d("GameScreen", "🎯 Matched solution: $matchedSolution")
+                    Log.d("GameScreen", "📋 Valid solutions: ${currentGame.validSolutions}")
+
                     if (matchedSolution != null) {
+                        Log.d("GameScreen", "✅ CORRECT SOLUTION!")
                         // Correct! Start animation with the matched solution
                         playerSequence = sequence
                         activeSolution = matchedSolution
@@ -307,6 +351,7 @@ fun GameScreen(
                         showSuccess = false
                         gridPosition = startingGridPosition
                     } else {
+                        Log.d("GameScreen", "❌ WRONG SOLUTION!")
                         // Wrong sequence
                         showError = true
                         showSuccess = false
@@ -983,13 +1028,5 @@ fun TiledBackground(tileBitmap: ImageBitmap) {
                 )
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GameScreenPreview() {
-    Learn_how_to_codeTheme {
-        GameScreen()
     }
 }

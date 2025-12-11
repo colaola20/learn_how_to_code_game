@@ -2,6 +2,7 @@ package com.sorych.learn_how_to_code
 
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
@@ -27,5 +28,6 @@ class TurtleTailAppClass : Application() {
         )
 
         userProgressRepository = UserProgressRepository(dataStore)
+        Log.d("TurtleTailApp", "📂 DataStore initialized")
     }
 }

@@ -3,9 +3,11 @@ package com.sorych.learn_how_to_code
 import com.sorych.learn_how_to_code.ui.game.GameScreen
 import LoginScreen
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.sorych.learn_how_to_code.ui.game.GameViewModel
 import com.sorych.learn_how_to_code.ui.registration.RegisterScreen
 import com.sorych.learn_how_to_code.ui.start.StartGameScreen
 import kotlinx.serialization.Serializable
@@ -28,6 +30,10 @@ sealed class Routes {
 @Composable
 fun NavClass() {
     val navController = rememberNavController()
+
+    val gameViewModel: GameViewModel = viewModel(
+        factory = GameViewModel.Factory
+    )
 
     NavHost(
         navController = navController,
@@ -58,6 +64,7 @@ fun NavClass() {
         // You will also need to define your other destinations
         composable<Routes.Game> {
             GameScreen(
+                viewModel = gameViewModel,
                 onExitClicked = {
                     navController.navigate(Routes.Start) {
                         popUpTo(Routes.Game) {inclusive = true}
@@ -68,7 +75,7 @@ fun NavClass() {
         composable<Routes.Registration> {
             RegisterScreen(
                 onRegisterSuccess = {
-                    navController.navigate(Routes.Game) {
+                    navController.navigate(Routes.Start) {
                         popUpTo(Routes.Registration) {inclusive = true}
                     }
                 },

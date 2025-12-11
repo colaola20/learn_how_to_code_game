@@ -32,19 +32,27 @@ class UserProgressRepository(
         .map { progress ->
             val level = progress[WHAT_LEVEL] ?: 1
             val score = progress[WHAT_SCORE] ?: 0
+            Log.d("DataStore", "📖 Reading from DataStore - Level: $level, Score: $score")
+            Log.d("DataStore", "📋 All preferences: ${progress.asMap()}")
             GameProgress(level, score)
         }
 
     suspend fun saveLevelProgress(level: Int) {
+        Log.d("DataStore", "💾 Attempting to save level: $level")
         dataStore.edit { progress ->
             progress[WHAT_LEVEL] = level
+            Log.d("DataStore", "✍️ Level $level written to preferences")
         }
+        Log.d("DataStore", "✅ Level save completed")
     }
 
     suspend fun saveScoreProgress(score: Int) {
+        Log.d("DataStore", "💾 Attempting to save score: $score")
         dataStore.edit { progress ->
             progress[WHAT_SCORE] = score
+            Log.d("DataStore", "✍️ Score $score written to preferences")
         }
+        Log.d("DataStore", "✅ Score save completed")
     }
 
 }

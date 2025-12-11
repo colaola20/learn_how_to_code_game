@@ -1,29 +1,48 @@
 package com.sorych.learn_how_to_code.ui.game
 import LevelRepository
 import android.util.Log
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.sorych.learn_how_to_code.BuildConfig
+import com.sorych.learn_how_to_code.TurtleTailAppClass
+import com.sorych.learn_how_to_code.data.GameProgress
+import com.sorych.learn_how_to_code.data.UserProgressRepository
 import com.sorych.learn_how_to_code.services.LevelResponse
 import com.sorych.learn_how_to_code.services.OpenAIService
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 class GameViewModel(
-    private val levelRepository: LevelRepository
+    private val levelRepository: LevelRepository,
+    private val userProgressRepository: UserProgressRepository
 ): ViewModel() {
-
-    init {
-        Log.d("GameViewModel", "API Key loaded: ${BuildConfig.OPENAI_API_KEY.take(10)}...")
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val application = (this[APPLICATION_KEY] as TurtleTailAppClass)
+                GameViewModel(levelRepository = LevelRepository(), application.userProgressRepository)
+            }
+        }
     }
+
+    val gameProgress: StateFlow<GameProgress> =
+        userProgressRepository.whatProgress
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), GameProgress(1, 0))
 
     // Add API key (better to store in local.properties or secure storage)
     private val openAIService = OpenAIService(
@@ -38,36 +57,88 @@ class GameViewModel(
         cols = 13
     )
 
+    // Track locally for immediate access
+    private var _currentLevelNumber = 1
+    private var _accumulatedScore = 0
+
+    val currentLevel: Int
+        get() = _currentLevelNumber
+
+    val currentScore: Int
+        get() = _accumulatedScore
+
     private val _levelConfig = MutableStateFlow(levelRepository.getLevel(1))
     val levelConfig: StateFlow<LevelConfig?> = _levelConfig.asStateFlow()
 
-    private val _currentLevel = MutableStateFlow(1)
-    val currentLevel: StateFlow<Int> = _currentLevel.asStateFlow()
+    init {
+        loadSavedProgress()
+    }
+
+    private fun loadSavedProgress() {
+        viewModelScope.launch {
+            gameProgress.collect { progress ->
+                // Only load the first emission
+                if (_levelConfig.value == null) {
+                    Log.d("GameViewModel", "📥 Loading saved progress - Level: ${progress.level}, Score: ${progress.score}")
+
+                    _currentLevelNumber = progress.level
+                    _accumulatedScore = progress.score
+                    loadLevel(progress.level)
+
+                    Log.d("GameViewModel", "✅ Progress loaded successfully")
+                }
+            }
+        }
+    }
 
     private val _isGeneratingLevel = MutableStateFlow(false)
     val isGeneratingLevel: StateFlow<Boolean> = _isGeneratingLevel.asStateFlow()
 
     fun loadLevel(levelNumber: Int) {
-        _currentLevel.value = levelNumber
         _levelConfig.value = levelRepository.getLevel(levelNumber)
     }
 
-    fun nextLevel() {
-        val next = _currentLevel.value + 1
 
-        // Check if level exists in repository
-        val existingLevel = levelRepository.getLevel(next)
+    private fun saveProgress(level: Int, score: Int) {
+        viewModelScope.launch {
+            Log.d("GameViewModel", "SAVING: Level=$level, Score=$score")
 
-        if (existingLevel != null) {
-            _currentLevel.value = next
-            _levelConfig.value = existingLevel
-        } else {
-            // Generate new level using GPT
-            generateLevelWithGPT(next)
+            userProgressRepository.saveLevelProgress(level)
+            userProgressRepository.saveScoreProgress(score)
+            Log.d("GameViewModel", "SAVED successfully")
         }
     }
 
-     fun generateLevelWithGPT(levelNumber: Int) {
+    fun completeGame() {
+        _accumulatedScore += 1
+        saveProgress(level = _currentLevelNumber, score = _accumulatedScore)
+        Log.d("GameViewModel", "🎮 Game completed! Level: $_currentLevelNumber, Score: $_accumulatedScore")
+    }
+
+
+    fun completeLevel() {
+        _accumulatedScore += 10
+        _currentLevelNumber += 1 // Increment immediately
+        saveProgress(level = _currentLevelNumber, score = _accumulatedScore)
+        Log.d("GameViewModel", "🏆 Level completed! Next Level: $_currentLevelNumber, Score: $_accumulatedScore")
+    }
+
+
+    fun nextLevel() {
+        Log.d("GameViewModel", "⏭️ Loading level $_currentLevelNumber")
+
+        val existingLevel = levelRepository.getLevel(_currentLevelNumber)
+
+        if (existingLevel != null) {
+            _levelConfig.value = existingLevel
+            Log.d("GameViewModel", "📂 Loaded existing level $_currentLevelNumber")
+        } else {
+            Log.d("GameViewModel", "🤖 Generating new level $_currentLevelNumber")
+            generateLevelWithGPT(_currentLevelNumber)
+        }
+    }
+
+    fun generateLevelWithGPT(levelNumber: Int) {
         viewModelScope.launch {
             try {
                 _isGeneratingLevel.value = true
@@ -88,7 +159,6 @@ class GameViewModel(
                 levelRepository.saveLevel(levelNumber, levelConfig)
 
                 // Update UI
-                _currentLevel.value = levelNumber
                 _levelConfig.value = levelConfig
 
                 Log.d("GameViewModel", "Level $levelNumber generated successfully!")
@@ -157,16 +227,6 @@ class GameViewModel(
         )
     }
 
-    private fun getLevelColor(level: Int): Color {
-        val colors = listOf(
-            Color(0xFF1976D2),
-            Color(0xFF388E3C),
-            Color(0xFFD32F2F),
-            Color(0xFFF57C00)
-        )
-        return colors[level % colors.size]
-    }
-
 
     fun computeDirections(path: PathConfig): Int {
         return when {
@@ -184,11 +244,5 @@ class GameViewModel(
         return Solution(directions, pathIds)
     }
 
-    companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                GameViewModel(levelRepository = LevelRepository())
-            }
-        }
-    }
+
 }
