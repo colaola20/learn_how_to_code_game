@@ -78,7 +78,7 @@ https://github.com/colaola20/learn_how_to_code_game.git
 - **Choose the cloned folder**
 - **Run on a device or emulator**
 
-##🙌 Contributing
+## 🙌 Contributing
 
 - **Contributions and ideas are welcome!**
 - **Feel free to open an issue or submit a pull request.**
