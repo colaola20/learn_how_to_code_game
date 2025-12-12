@@ -72,6 +72,12 @@ https://github.com/user-attachments/assets/e247c92b-9a10-478a-980b-dbdc3af857c7
 ### Clone the repository
 https://github.com/colaola20/learn_how_to_code_game.git
 
+## Open in Android Studio
+- **Launch Android Studio**
+- **Select Open Project**
+- **Choose the cloned folder**
+- **Run on a device or emulator**
+
 ##🙌 Contributing
 
 - **Contributions and ideas are welcome!**
